@@ -7,6 +7,7 @@ using GestionCommerciale.Modules.Charges.Models;
 using GestionCommerciale.Modules.CommandeFournisseur.Models;
 using GestionCommerciale.Modules.CommandeClient.Models;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
+using GestionCommerciale.Modules.Personnel.Models;
 using GestionCommerciale.Modules.Preparation.Models;
 using GestionCommerciale.Modules.Reception.Models;
 using GestionCommerciale.Modules.Stock.Models;
@@ -50,6 +51,10 @@ public class AppDbContext : DbContext
     public DbSet<AvoirFournisseurLigne> AvoirFournisseurLignes => Set<AvoirFournisseurLigne>();
     public DbSet<TypeCharge> TypesCharges => Set<TypeCharge>();
     public DbSet<Charge> Charges => Set<Charge>();
+    public DbSet<BonCharge> BonsCharge => Set<BonCharge>();
+    public DbSet<BonChargeLigne> BonChargeLignes => Set<BonChargeLigne>();
+    public DbSet<BonDecharge> BonsDecharge => Set<BonDecharge>();
+    public DbSet<BonDechargeLigne> BonDechargeLignes => Set<BonDechargeLigne>();
     public DbSet<AppSettingsRow> AppSettings => Set<AppSettingsRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -259,6 +264,76 @@ public class AppDbContext : DbContext
             e.HasOne(c => c.TypeCharge).WithMany().HasForeignKey(c => c.TypeChargeId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(c => c.TypeChargeId);
             e.HasIndex(c => c.Date);
+        });
+
+        modelBuilder.Entity<BonCharge>(e =>
+        {
+            e.ToTable("BonsCharge");
+            e.Property(b => b.Numero).HasMaxLength(50).IsRequired();
+            e.HasIndex(b => b.Numero).IsUnique();
+            e.Property(b => b.Note).HasMaxLength(1000);
+            e.Property(b => b.DepotLocationId).HasDefaultValue(1);
+            e.HasOne(b => b.AssignedToUser)
+                .WithMany()
+                .HasForeignKey(b => b.AssignedToUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(b => b.DepotLocation)
+                .WithMany()
+                .HasForeignKey(b => b.DepotLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(b => b.Lignes)
+                .WithOne(l => l.BonCharge)
+                .HasForeignKey(l => l.BonChargeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(b => b.AssignedToUserId);
+            e.HasIndex(b => b.DepotLocationId);
+        });
+
+        modelBuilder.Entity<BonChargeLigne>(e =>
+        {
+            e.ToTable("BonChargeLignes");
+            e.Property(l => l.Designation).HasMaxLength(300).IsRequired();
+            e.HasOne<Produit>()
+                .WithMany()
+                .HasForeignKey(l => l.ProduitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(l => l.BonChargeId);
+            e.HasIndex(l => l.ProduitId);
+        });
+
+        modelBuilder.Entity<BonDecharge>(e =>
+        {
+            e.ToTable("BonsDecharge");
+            e.Property(b => b.Numero).HasMaxLength(50).IsRequired();
+            e.HasIndex(b => b.Numero).IsUnique();
+            e.Property(b => b.Note).HasMaxLength(1000);
+            e.Property(b => b.DepotLocationId).HasDefaultValue(1);
+            e.HasOne(b => b.AssignedToUser)
+                .WithMany()
+                .HasForeignKey(b => b.AssignedToUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(b => b.DepotLocation)
+                .WithMany()
+                .HasForeignKey(b => b.DepotLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(b => b.Lignes)
+                .WithOne(l => l.BonDecharge)
+                .HasForeignKey(l => l.BonDechargeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(b => b.AssignedToUserId);
+            e.HasIndex(b => b.DepotLocationId);
+        });
+
+        modelBuilder.Entity<BonDechargeLigne>(e =>
+        {
+            e.ToTable("BonDechargeLignes");
+            e.Property(l => l.Designation).HasMaxLength(300).IsRequired();
+            e.HasOne<Produit>()
+                .WithMany()
+                .HasForeignKey(l => l.ProduitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(l => l.BonDechargeId);
+            e.HasIndex(l => l.ProduitId);
         });
 
         modelBuilder.Entity<AppSettingsRow>(e =>
