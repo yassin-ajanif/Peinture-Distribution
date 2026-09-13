@@ -363,8 +363,8 @@ public partial class AppShellViewModel : BaseViewModel
         IsNavStockActive = p is StockMainViewModel;
         IsNavProduitsActive = p is ProduitsViewModel;
         IsNavVendeursActive = p is VendeursViewModel;
-        IsNavBonChargeActive = p is BonChargeListViewModel;
-        IsNavBonDechargeActive = p is BonDechargeListViewModel;
+        IsNavBonChargeActive = p is BonChargeListViewModel or BonChargeEditViewModel;
+        IsNavBonDechargeActive = p is BonDechargeListViewModel or BonDechargeEditViewModel;
         IsNavReportsActive = p is ReportsListViewModel;
         IsNavSettingsActive = p is SettingsViewModel;
     }

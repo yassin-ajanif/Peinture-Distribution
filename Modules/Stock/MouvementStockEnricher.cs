@@ -181,6 +181,7 @@ public static class MouvementStockEnricher
         var typeEntree = locale.T("TypeMvt_Entree");
         var typeSortie = locale.T("TypeMvt_Sortie");
         var typeAjust = locale.T("TypeMvt_Ajustement");
+        var typeTransfert = locale.T("TypeMvt_Transfert");
 
         foreach (var m in movements)
         {
@@ -190,6 +191,7 @@ public static class MouvementStockEnricher
             {
                 TypeMouvement.Entree => typeEntree,
                 TypeMouvement.Sortie => typeSortie,
+                TypeMouvement.Transfert => typeTransfert,
                 _ => typeAjust
             };
         }

@@ -90,7 +90,9 @@ public static class DependencyInjection
         services.AddTransient<ProduitsViewModel>();
         services.AddTransient<VendeursViewModel>();
         services.AddTransient<BonChargeListViewModel>();
+        services.AddTransient<BonChargeEditViewModel>();
         services.AddTransient<BonDechargeListViewModel>();
+        services.AddTransient<BonDechargeEditViewModel>();
         services.AddTransient<DevisListViewModel>();
         services.AddTransient<DevisEditViewModel>();
         services.AddTransient<BCVListViewModel>();

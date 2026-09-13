@@ -36,6 +36,8 @@ public class MouvementStock : BaseEntity
                 return TypeMouvement.Entree;
             if (FromLocationId is not null && ToLocationId is null)
                 return TypeMouvement.Sortie;
+            if (FromLocationId is not null && ToLocationId is not null)
+                return TypeMouvement.Transfert;
             return TypeMouvement.Ajustement;
         }
     }
@@ -48,6 +50,7 @@ public class MouvementStock : BaseEntity
     {
         TypeMouvement.Sortie => -Math.Abs(Quantite),
         TypeMouvement.Entree => Math.Abs(Quantite),
+        TypeMouvement.Transfert => Math.Abs(Quantite),
         TypeMouvement.Ajustement => FromLocationId is not null && ToLocationId is null
             ? -Math.Abs(Quantite)
             : Math.Abs(Quantite),

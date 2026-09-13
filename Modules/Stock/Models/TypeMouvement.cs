@@ -4,5 +4,6 @@ public enum TypeMouvement
 {
     Entree,
     Sortie,
-    Ajustement
+    Ajustement,
+    Transfert
 }

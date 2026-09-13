@@ -13,6 +13,8 @@ public sealed class StockMovementService : IStockMovementService
     public const string OrigineTypeAvoir = "Avoir";
     public const string OrigineTypeAvoirFournisseur = "AvoirFournisseur";
     public const string OrigineTypeImport = "Import";
+    public const string OrigineTypeBonCharge = "BCH";
+    public const string OrigineTypeBonDecharge = "BDH";
 
     private readonly ILocaleService _locale;
     private readonly IStockLocationService _locations;
@@ -206,6 +208,126 @@ public sealed class StockMovementService : IStockMovementService
             useModificationNoteOnEdit: true,
             onPositiveEntreeDelta: null,
             cancellationToken);
+    }
+
+    public Task ResyncBonChargeStockAsync(
+        AppDbContext db,
+        int bonChargeId,
+        string noteDetail,
+        int depotLocationId,
+        int virtualLocationId,
+        IEnumerable<(int ProduitId, decimal Quantite)> lines,
+        int? createdByUserId,
+        CancellationToken cancellationToken = default)
+        => SyncTransferDocumentStockAsync(
+            db,
+            OrigineTypeBonCharge,
+            bonChargeId,
+            noteDetail,
+            fromLocationId: depotLocationId,
+            toLocationId: virtualLocationId,
+            lines,
+            createdByUserId,
+            cancellationToken);
+
+    public Task ResyncBonDechargeStockAsync(
+        AppDbContext db,
+        int bonDechargeId,
+        string noteDetail,
+        int depotLocationId,
+        int virtualLocationId,
+        IEnumerable<(int ProduitId, decimal Quantite)> lines,
+        int? createdByUserId,
+        CancellationToken cancellationToken = default)
+        => SyncTransferDocumentStockAsync(
+            db,
+            OrigineTypeBonDecharge,
+            bonDechargeId,
+            noteDetail,
+            fromLocationId: virtualLocationId,
+            toLocationId: depotLocationId,
+            lines,
+            createdByUserId,
+            cancellationToken);
+
+    private async Task SyncTransferDocumentStockAsync(
+        AppDbContext db,
+        string origineType,
+        int origineId,
+        string noteDetail,
+        int fromLocationId,
+        int toLocationId,
+        IEnumerable<(int ProduitId, decimal Quantite)> lines,
+        int? createdByUserId,
+        CancellationToken cancellationToken)
+    {
+        if (fromLocationId <= 0 || toLocationId <= 0)
+            throw new ArgumentException("Transfer locations are required.");
+        if (fromLocationId == toLocationId)
+            throw new ArgumentException("From and To locations must differ.");
+
+        var fromOk = await db.StockLocations.AsNoTracking()
+            .AnyAsync(l => l.Id == fromLocationId && l.Actif, cancellationToken);
+        var toOk = await db.StockLocations.AsNoTracking()
+            .AnyAsync(l => l.Id == toLocationId && l.Actif, cancellationToken);
+        if (!fromOk || !toOk)
+            throw new InvalidOperationException(_locale.T("Stock_ErrLocationInactive"));
+
+        var desired = lines
+            .Where(l => l.ProduitId > 0 && l.Quantite > 0)
+            .GroupBy(l => l.ProduitId)
+            .ToDictionary(g => g.Key, g => g.Sum(l => l.Quantite));
+
+        var movements = await db.MouvementsStock
+            .Where(m => m.OrigineType == origineType && m.OrigineId == origineId)
+            .ToListAsync(cancellationToken);
+
+        var documentHasPriorMovements = movements.Count > 0;
+
+        var currentByProduit = movements
+            .GroupBy(m => m.ProduitId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(m => TransferNetQty(m, fromLocationId, toLocationId)));
+
+        var produitIds = currentByProduit.Keys.Union(desired.Keys).ToList();
+        foreach (var produitId in produitIds)
+        {
+            currentByProduit.TryGetValue(produitId, out var current);
+            desired.TryGetValue(produitId, out var want);
+            var delta = want - current;
+            if (delta == 0) continue;
+
+            var isAnnulation = want == 0 && current != 0;
+            var isModification = !isAnnulation && documentHasPriorMovements;
+            var note = isAnnulation
+                ? _locale.Tf("Stock_AnnulationNote", noteDetail)
+                : isModification
+                    ? _locale.Tf("Stock_ModificationNote", noteDetail)
+                    : noteDetail;
+
+            if (delta > 0)
+            {
+                await ApplyLocationMovementAsync(
+                    db, produitId, fromLocationId, toLocationId, delta,
+                    origineType, origineId, note, createdByUserId, cancellationToken);
+            }
+            else
+            {
+                await ApplyLocationMovementAsync(
+                    db, produitId, toLocationId, fromLocationId, -delta,
+                    origineType, origineId, note, createdByUserId, cancellationToken);
+            }
+        }
+    }
+
+    private static decimal TransferNetQty(MouvementStock m, int fromLocationId, int toLocationId)
+    {
+        if (m.FromLocationId == fromLocationId && m.ToLocationId == toLocationId)
+            return Math.Abs(m.Quantite);
+        if (m.FromLocationId == toLocationId && m.ToLocationId == fromLocationId)
+            return -Math.Abs(m.Quantite);
+        return 0m;
     }
 
     private async Task SyncDocumentStockAsync(

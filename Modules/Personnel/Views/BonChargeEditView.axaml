@@ -1,0 +1,143 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:GestionCommerciale.Modules.Personnel.ViewModels"
+             xmlns:auth="using:GestionCommerciale.Modules.Auth.Models"
+             xmlns:stockVm="using:GestionCommerciale.Modules.Stock.ViewModels"
+             xmlns:stock="using:GestionCommerciale.Modules.Stock.Models"
+             x:Class="GestionCommerciale.Modules.Personnel.Views.BonChargeEditView"
+             x:Name="ThisView"
+             x:DataType="vm:BonChargeEditViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="10">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="{Binding BtnBack}" Command="{Binding BackCommand}"/>
+        <Button Content="{Binding BtnSave}" Command="{Binding SaveCommand}"/>
+        <Button Content="{Binding BtnDelete}" Command="{Binding DeleteCommand}" IsEnabled="{Binding CanDelete}"/>
+      </StackPanel>
+      <Border Background="{DynamicResource CourseraSurfaceBrush}" CornerRadius="8" Padding="10,8">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Numero}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"
+                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <DatePicker SelectedDate="{Binding Date}"/>
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <TextBlock Text="{Binding LblDepot}" VerticalAlignment="Center" Opacity="0.7"/>
+              <ComboBox MinWidth="220" ItemsSource="{Binding StockLocations}" SelectedItem="{Binding SelectedDepot, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate DataType="stockVm:StockLocationPickItem">
+                    <TextBlock Text="{Binding Label}"/>
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+            <TextBlock Text="→" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Opacity="0.75" Margin="4,0"/>
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <TextBlock Text="{Binding LblAssignedTo}" VerticalAlignment="Center" Opacity="0.7"/>
+              <ComboBox MinWidth="220" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedAssignedUser, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate DataType="auth:User">
+                    <TextBlock Text="{Binding FullName}"/>
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <TextBlock Text="{Binding LblAddProduct}" VerticalAlignment="Center" Opacity="0.7"/>
+        <AutoCompleteBox MinWidth="360" MaxWidth="520" VerticalAlignment="Center"
+                         MinimumPrefixLength="1" MaxDropDownHeight="320"
+                         Watermark="{Binding WmAddProduct}"
+                         ItemsSource="{Binding Produits}"
+                         ItemFilter="{Binding ProduitAutocompleteFilter}"
+                         Text="{Binding AddLineSearchText, Mode=TwoWay}"
+                         SelectedItem="{Binding AddLineCatalogPick, Mode=TwoWay}">
+          <AutoCompleteBox.ValueMemberBinding>
+            <Binding Path="Reference"/>
+          </AutoCompleteBox.ValueMemberBinding>
+          <AutoCompleteBox.ItemTemplate>
+            <DataTemplate DataType="stock:Produit">
+              <TextBlock TextWrapping="Wrap">
+                <TextBlock.Text>
+                  <MultiBinding StringFormat="{}{0} — {1}">
+                    <Binding Path="Reference"/>
+                    <Binding Path="Designation"/>
+                  </MultiBinding>
+                </TextBlock.Text>
+              </TextBlock>
+            </DataTemplate>
+          </AutoCompleteBox.ItemTemplate>
+        </AutoCompleteBox>
+        <Button Content="{Binding BtnRemoveLine}" VerticalAlignment="Center" Command="{Binding RemoveSelectedLineCommand}"/>
+      </StackPanel>
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <Grid MinWidth="720" RowDefinitions="Auto,*">
+          <Border Grid.Row="0" BorderBrush="{DynamicResource CourseraBorderBrush}" BorderThickness="1" CornerRadius="8,8,0,0"
+                  Background="{DynamicResource CourseraSurfaceMutedBrush}" Padding="8,8">
+            <Grid ColumnDefinitions="*,90,100,80,80,100">
+              <TextBlock Grid.Column="0" Text="{Binding LblDocColDesignation}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="1" Text="{Binding LblDocColQte}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="2" Text="{Binding LblDocColPuHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="3" Text="{Binding LblDocColRemise}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="4" Text="{Binding LblDocColTva}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="5" Text="{Binding LblDocColMontantHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+            </Grid>
+          </Border>
+          <ListBox Grid.Row="1" ItemsSource="{Binding Lignes}" SelectedItem="{Binding SelectedLine}" MinHeight="200"
+                   BorderThickness="1" BorderBrush="{DynamicResource CourseraBorderBrush}" CornerRadius="0,0,8,8"
+                   Background="{DynamicResource CourseraSurfaceBrush}">
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="vm:PersonnelDocumentLineRow">
+                <Border Padding="6,2" BorderBrush="#18000000" BorderThickness="0,0,0,1">
+                  <Grid MinHeight="34" ColumnDefinitions="*,90,100,80,80,100">
+                    <TextBox Grid.Column="0" Text="{Binding Designation}" Watermark="…" Padding="6,4" Margin="0,0,8,0"/>
+                    <NumericUpDown Grid.Column="1" ShowButtonSpinner="False" Value="{Binding Quantite}" FormatString="0.##" Minimum="0" Increment="1"
+                                   HorizontalAlignment="Stretch" Margin="0,0,8,0"/>
+                    <NumericUpDown Grid.Column="2" ShowButtonSpinner="False" Value="{Binding PrixUnitaireHT}" FormatString="0.##" Minimum="0" Increment="0.01"
+                                   HorizontalAlignment="Stretch" Margin="0,0,8,0"/>
+                    <NumericUpDown Grid.Column="3" ShowButtonSpinner="False" Value="{Binding Remise}" FormatString="0.##" Minimum="0" Increment="1"
+                                   HorizontalAlignment="Stretch" Margin="0,0,8,0"/>
+                    <NumericUpDown Grid.Column="4" ShowButtonSpinner="False" Value="{Binding TauxTVA}" FormatString="0.##" Minimum="0" Increment="1"
+                                   HorizontalAlignment="Stretch" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="5" Text="{Binding MontantHt, StringFormat=\{0:N2\}}" VerticalAlignment="Center"
+                               HorizontalAlignment="Right" Opacity="0.9"/>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </ScrollViewer>
+      <Grid Margin="0,8,0,0" ColumnDefinitions="*,16,Auto">
+        <TextBox Grid.Column="0"
+                 Watermark="{Binding LblNote}"
+                 Text="{Binding Note}"
+                 AcceptsReturn="True"
+                 MinHeight="88"
+                 VerticalContentAlignment="Top"
+                 VerticalAlignment="Stretch"/>
+        <Border Grid.Column="2"
+                Padding="14,10"
+                MinWidth="220"
+                VerticalAlignment="Top"
+                Background="#EEF2FF"
+                BorderBrush="#C7D2FE"
+                BorderThickness="1"
+                CornerRadius="6"
+                BoxShadow="0 1 4 0 #18000000">
+          <StackPanel Spacing="6" HorizontalAlignment="Right">
+            <TextBlock Text="{Binding LblTotals}" FontSize="11" Opacity="0.65" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+            <TextBlock Text="{Binding TotalHtLabel}" FontSize="13" HorizontalAlignment="Right"/>
+            <TextBlock Text="{Binding TotalTvaLabel}" FontSize="13" HorizontalAlignment="Right"/>
+            <TextBlock Text="{Binding TotalTtcLabel}" FontSize="17" FontWeight="Bold" Foreground="#3730A3" HorizontalAlignment="Right"/>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
