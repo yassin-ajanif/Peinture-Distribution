@@ -124,7 +124,7 @@ public class PerformanceTestService
         for (var i = 0; i < ProductCount; i += batch)
         {
             var sb = new System.Text.StringBuilder();
-            sb.Append("INSERT INTO Produits (Id,CreatedAt,UpdatedAt,Reference,CodeBarre,Designation,Unite,PrixAchatHT,PrixVenteHT,TauxTVA,StockActuel,StockMinimum,Actif) VALUES ");
+            sb.Append("INSERT INTO Produits (Id,CreatedAt,UpdatedAt,Reference,CodeBarre,Designation,Unite,PrixAchatHT,PrixVenteHT,TauxTVA,StockMinimum,Actif) VALUES ");
             var end = Math.Min(i + batch, ProductCount);
             for (var j = i; j < end; j++)
             {
@@ -134,7 +134,7 @@ public class PerformanceTestService
                 var pv = pa + Rng.Next(200, 300_000) / 100m;
                 var tva = Rng.NextDouble() < 0.7 ? 20m : Rng.NextDouble() < 0.5 ? 14m : 10m;
                 if (j > i) sb.Append(',');
-                sb.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}','PROD-{j:D5}',NULL,'{Escape(desig)}','U',{pa:F2},{pv:F2},{tva:F1},{InitialProductStock},{Rng.Next(0,51)},1)");
+                sb.Append(CultureInfo.InvariantCulture, $"({id},'{now}','{now}','PROD-{j:D5}',NULL,'{Escape(desig)}','U',{pa:F2},{pv:F2},{tva:F1},{Rng.Next(0,51)},1)");
             }
             await ExecAsync(conn, sb.ToString(), ct);
         }
@@ -411,7 +411,6 @@ public class PerformanceTestService
         CancellationToken ct)
     {
         const int batch = 1000;
-        const int sortieType = 1;
         var stockByProd = new Dictionary<long, decimal>(ProductCount);
         for (var p = 1; p <= ProductCount; p++)
             stockByProd[prodStartId + p] = InitialProductStock;
@@ -433,7 +432,7 @@ public class PerformanceTestService
                 {
                     if (sb != null) await ExecAsync(conn, sb.ToString(), ct);
                     sb = new System.Text.StringBuilder();
-                    sb.Append("INSERT INTO MouvementsStock (Id,CreatedAt,UpdatedAt,ProduitId,Type,StockAvant,Quantite,OrigineType,OrigineId,Note) VALUES ");
+                    sb.Append("INSERT INTO MouvementsStock (Id,CreatedAt,UpdatedAt,ProduitId,FromLocationId,ToLocationId,Quantite,FromAvant,FromApres,ToAvant,ToApres,OrigineType,OrigineId,Note) VALUES ");
                 }
                 else
                 {
@@ -442,28 +441,14 @@ public class PerformanceTestService
 
                 mouvementId++;
                 var note = $"BL-{blId}";
-                sb!.Append(CultureInfo.InvariantCulture, $"({mouvementId},'{now}','{now}',{prodId},{sortieType},{stockAvant:F2},{qty:F2},'{BlOrigineType}',{blId},'{Escape(note)}')");
-                stockByProd[prodId] = stockAvant - qty;
+                var fromApres = stockAvant - qty;
+                sb!.Append(CultureInfo.InvariantCulture, $"({mouvementId},'{now}','{now}',{prodId},1,NULL,{qty:F2},{stockAvant:F2},{fromApres:F2},NULL,NULL,'{BlOrigineType}',{blId},'{Escape(note)}')");
+                stockByProd[prodId] = fromApres;
                 count++;
             }
         }
 
         if (sb != null) await ExecAsync(conn, sb.ToString(), ct);
-
-        const int updateBatch = 500;
-        var prodIds = stockByProd.Keys.OrderBy(k => k).ToList();
-        for (var i = 0; i < prodIds.Count; i += updateBatch)
-        {
-            var end = Math.Min(i + updateBatch, prodIds.Count);
-            var sbUpdate = new System.Text.StringBuilder();
-            for (var j = i; j < end; j++)
-            {
-                var prodId = prodIds[j];
-                if (j > i) sbUpdate.Append(';');
-                sbUpdate.Append(CultureInfo.InvariantCulture, $"UPDATE Produits SET StockActuel={stockByProd[prodId]:F2} WHERE Id={prodId}");
-            }
-            await ExecAsync(conn, sbUpdate.ToString(), ct);
-        }
 
         return count;
     }

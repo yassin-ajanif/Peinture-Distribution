@@ -1,3 +1,4 @@
+using GestionCommerciale.Modules.Auth.Models;
 using GestionCommerciale.Modules.Devis.Models;
 using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.Livraison.Models;
@@ -18,9 +19,11 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+    public DbSet<User> Users => Set<User>();
     public DbSet<Tiers> Tiers => Set<Tiers>();
     public DbSet<Categorie> Categories => Set<Categorie>();
     public DbSet<Produit> Produits => Set<Produit>();
+    public DbSet<StockLocation> StockLocations => Set<StockLocation>();
     public DbSet<MouvementStock> MouvementsStock => Set<MouvementStock>();
     public DbSet<Devis> Devis => Set<Devis>();
     public DbSet<DevisLigne> DevisLignes => Set<DevisLigne>();
@@ -51,6 +54,24 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<User>(e =>
+        {
+            e.ToTable("Users");
+            e.Property(u => u.FullName).HasMaxLength(200).IsRequired();
+            e.Property(u => u.Phone).HasMaxLength(50).IsRequired();
+            e.HasIndex(u => u.Phone).IsUnique();
+            e.Property(u => u.UserType)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue(UserType.Vendeur)
+                .IsRequired();
+            e.Property(u => u.Actif).HasDefaultValue(true);
+            e.HasOne(u => u.VirtualStock)
+                .WithOne(l => l.User!)
+                .HasForeignKey<StockLocation>(l => l.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Tiers>(e =>
         {
             e.ToTable("Tiers", t =>
@@ -70,12 +91,54 @@ public class AppDbContext : DbContext
         {
             e.HasOne(p => p.Categorie).WithMany().HasForeignKey(p => p.CategorieId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(p => p.Reference).IsUnique();
+            e.Ignore(p => p.StockActuel);
+        });
+
+        modelBuilder.Entity<StockLocation>(e =>
+        {
+            e.ToTable("StockLocations", t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_StockLocation_VirtualUser",
+                    "(IsVirtual = 0 AND UserId IS NULL) OR (IsVirtual = 1 AND UserId IS NOT NULL)");
+            });
+            e.Property(l => l.Nom).HasMaxLength(200).IsRequired();
+            e.HasIndex(l => l.UserId)
+                .IsUnique()
+                .HasFilter("IsVirtual = 1");
+            e.HasData(new StockLocation
+            {
+                Id = 1,
+                Nom = StockLocation.DefaultDepotNom,
+                IsVirtual = false,
+                UserId = null,
+                Actif = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            });
         });
 
         modelBuilder.Entity<MouvementStock>(e =>
         {
-            e.Property(m => m.Type).HasConversion<int>();
             e.HasOne(m => m.Produit).WithMany().HasForeignKey(m => m.ProduitId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.FromLocation).WithMany().HasForeignKey(m => m.FromLocationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.ToLocation).WithMany().HasForeignKey(m => m.ToLocationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(m => m.ProduitId);
+            e.HasIndex(m => new { m.OrigineType, m.OrigineId });
+            e.Ignore(m => m.Type);
+            e.Ignore(m => m.StockAvant);
+            e.Ignore(m => m.StockApres);
+            e.Ignore(m => m.SignedQuantite);
+            e.Ignore(m => m.QuantiteSignedLabel);
+            e.Ignore(m => m.PartyName);
+            e.Ignore(m => m.PartyIsSupplier);
+            e.Ignore(m => m.HasPartyName);
+            e.Ignore(m => m.PartyColorSignal);
+            e.Ignore(m => m.DocumentRef);
+            e.Ignore(m => m.CanOpenOrigin);
+            e.Ignore(m => m.TraceDetail);
+            e.Ignore(m => m.UnitPriceDetail);
+            e.Ignore(m => m.HasUnitPriceDetail);
         });
 
         modelBuilder.Entity<Devis>(e =>

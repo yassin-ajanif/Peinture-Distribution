@@ -140,6 +140,7 @@ public partial class StockMainViewModel : BaseViewModel
                 .OrderBy(p => p.Reference)
                 .Skip(Pagination.Skip).Take(Pagination.PageSize)
                 .ToListAsync(cancellationToken);
+            await StockBalanceQueries.HydrateStockActuelAsync(db, list, cancellationToken);
             Produits.Clear();
             foreach (var p in list) Produits.Add(p);
             Pagination.TotalCount = total;

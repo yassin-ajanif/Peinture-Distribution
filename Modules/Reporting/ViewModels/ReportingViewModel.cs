@@ -251,11 +251,15 @@ public partial class ReportingViewModel : BaseViewModel
         }
 
         var stockAlertRows = new List<ReportStockAlertRow>();
-        var alerts = await db.Produits.AsNoTracking()
-            .Where(p => p.Actif && p.StockMinimum > 0 && p.StockActuel < p.StockMinimum)
+        var candidates = await db.Produits.AsNoTracking()
+            .Where(p => p.Actif && p.StockMinimum > 0)
             .SelectForListWithoutImageData()
-            .Take(100)
             .ToListAsync(ct);
+        await StockBalanceQueries.HydrateStockActuelAsync(db, candidates, ct);
+        var alerts = candidates
+            .Where(p => p.StockActuel < p.StockMinimum)
+            .Take(100)
+            .ToList();
         foreach (var p in alerts)
         {
             stockAlertRows.Add(new ReportStockAlertRow(
@@ -266,8 +270,12 @@ public partial class ReportingViewModel : BaseViewModel
         }
 
         var actifs = await db.Produits.AsNoTracking().CountAsync(p => p.Actif, ct);
-        var sousMin = await db.Produits.AsNoTracking().CountAsync(
-            p => p.Actif && p.StockMinimum > 0 && p.StockActuel < p.StockMinimum, ct);
+        var allWithMin = await db.Produits.AsNoTracking()
+            .Where(p => p.Actif && p.StockMinimum > 0)
+            .SelectForListWithoutImageData()
+            .ToListAsync(ct);
+        await StockBalanceQueries.HydrateStockActuelAsync(db, allWithMin, ct);
+        var sousMin = allWithMin.Count(p => p.StockActuel < p.StockMinimum);
         var pctSous = actifs > 0 ? (double)sousMin / actifs * 100.0 : 0;
 
         var unpaidProj = await db.Factures.AsNoTracking()

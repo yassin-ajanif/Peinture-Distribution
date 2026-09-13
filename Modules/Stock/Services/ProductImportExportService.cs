@@ -31,6 +31,7 @@ public sealed class ProductImportExportService : IProductImportExportService
             .Include(p => p.Categorie)
             .OrderBy(p => p.Reference)
             .ToListAsync(cancellationToken);
+        await StockBalanceQueries.HydrateStockActuelAsync(db, products, cancellationToken);
 
         var fr = CultureInfo.GetCultureInfo("fr-FR");
         var sb = new StringBuilder();
@@ -114,9 +115,11 @@ public sealed class ProductImportExportService : IProductImportExportService
                     existing.CategorieId = categorieId;
                     existing.Actif = actif;
 
-                    if (existing.StockActuel != stockActuel)
+                    var currentStock = await StockBalanceQueries.GetTotalBalancesAsync(db, [existing.Id], cancellationToken);
+                    var stockNow = currentStock.GetValueOrDefault(existing.Id);
+                    if (stockNow != stockActuel)
                     {
-                        var delta = stockActuel - existing.StockActuel;
+                        var delta = stockActuel - stockNow;
                         await _stock.ApplyMovementAsync(
                             db,
                             existing.Id,
@@ -142,7 +145,6 @@ public sealed class ProductImportExportService : IProductImportExportService
                         PrixAchatHT = prixAchatHt,
                         PrixVenteHT = prixVenteHt,
                         TauxTVA = tauxTva,
-                        StockActuel = 0,
                         StockMinimum = stockMin,
                         CategorieId = categorieId,
                         Actif = actif

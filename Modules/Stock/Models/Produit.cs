@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using GestionCommerciale.Shared.Models;
 
 namespace GestionCommerciale.Modules.Stock.Models;
@@ -12,6 +13,8 @@ public class Produit : BaseEntity
     public decimal PrixAchatHT { get; set; }
     public decimal PrixVenteHT { get; set; }
     public decimal TauxTVA { get; set; }
+    /// <summary>Total qty across locations (computed, not stored).</summary>
+    [NotMapped]
     public decimal StockActuel { get; set; }
     public decimal StockMinimum { get; set; }
     public int? CategorieId { get; set; }

@@ -15,10 +15,12 @@ public sealed class StockMovementService : IStockMovementService
     public const string OrigineTypeImport = "Import";
 
     private readonly ILocaleService _locale;
+    private readonly IStockLocationService _locations;
 
-    public StockMovementService(ILocaleService locale)
+    public StockMovementService(ILocaleService locale, IStockLocationService locations)
     {
         _locale = locale;
+        _locations = locations;
     }
 
     public async Task ApplyMovementAsync(
@@ -32,29 +34,46 @@ public sealed class StockMovementService : IStockMovementService
         int? createdByUserId,
         CancellationToken cancellationToken = default)
     {
-        var produit = await db.Produits.FirstAsync(p => p.Id == produitId, cancellationToken);
-        decimal delta = type switch
-        {
-            TypeMouvement.Entree => quantite,
-            TypeMouvement.Sortie => -quantite,
-            TypeMouvement.Ajustement => quantite,
-            _ => throw new ArgumentOutOfRangeException(nameof(type))
-        };
+        _ = await db.Produits.FirstAsync(p => p.Id == produitId, cancellationToken);
+        var depot = await _locations.GetOrCreateDefaultDepotAsync(db, cancellationToken);
 
-        var stockAvant = produit.StockActuel;
-        produit.StockActuel = stockAvant + delta;
+        int? fromId;
+        int? toId;
+        var absQty = Math.Abs(quantite);
 
-        db.MouvementsStock.Add(new MouvementStock
+        switch (type)
         {
-            ProduitId = produitId,
-            Type = type,
-            StockAvant = stockAvant,
-            Quantite = quantite,
-            OrigineType = origineType,
-            OrigineId = origineId,
-            Note = note ?? string.Empty,
-            CreatedByUserId = createdByUserId
-        });
+            case TypeMouvement.Entree:
+                fromId = null;
+                toId = depot.Id;
+                break;
+            case TypeMouvement.Sortie:
+                fromId = depot.Id;
+                toId = null;
+                break;
+            case TypeMouvement.Ajustement when quantite >= 0:
+                fromId = null;
+                toId = depot.Id;
+                break;
+            case TypeMouvement.Ajustement:
+                fromId = depot.Id;
+                toId = null;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type));
+        }
+
+        await ApplyLocationMovementAsync(
+            db,
+            produitId,
+            fromId,
+            toId,
+            absQty,
+            origineType,
+            origineId,
+            note,
+            createdByUserId,
+            cancellationToken);
     }
 
     public Task ResyncBonLivraisonStockAsync(
@@ -143,7 +162,9 @@ public sealed class StockMovementService : IStockMovementService
             {
                 if (!prixByProduit.TryGetValue(produitId, out var newPrice)) return;
                 var produit = await db.Produits.FirstAsync(p => p.Id == produitId, ct);
-                var oldQty = produit.StockActuel - entreeDelta;
+                var depot = await _locations.GetOrCreateDefaultDepotAsync(db, ct);
+                var balanceAfter = await StockBalanceQueries.GetBalanceAsync(db, produitId, depot.Id, ct);
+                var oldQty = balanceAfter - entreeDelta;
                 var oldPrice = produit.PrixAchatHT;
                 var totalQty = oldQty + entreeDelta;
                 if (totalQty > 0)
@@ -227,7 +248,7 @@ public sealed class StockMovementService : IStockMovementService
 
         var currentSignedByProduit = movements
             .GroupBy(m => m.ProduitId)
-            .ToDictionary(g => g.Key, g => g.Sum(SignedQuantite));
+            .ToDictionary(g => g.Key, g => g.Sum(m => m.SignedQuantite));
 
         var produitIds = currentSignedByProduit.Keys
             .Union(desiredSignedByProduit.Keys)
@@ -280,11 +301,51 @@ public sealed class StockMovementService : IStockMovementService
         }
     }
 
-    private static decimal SignedQuantite(MouvementStock m) => m.Type switch
+    private async Task ApplyLocationMovementAsync(
+        AppDbContext db,
+        int produitId,
+        int? fromId,
+        int? toId,
+        decimal quantite,
+        string origineType,
+        int? origineId,
+        string? note,
+        int? createdByUserId,
+        CancellationToken cancellationToken)
     {
-        TypeMouvement.Sortie => -Math.Abs(m.Quantite),
-        TypeMouvement.Entree => Math.Abs(m.Quantite),
-        TypeMouvement.Ajustement => m.Quantite,
-        _ => m.Quantite
-    };
+        if (quantite <= 0)
+            throw new ArgumentOutOfRangeException(nameof(quantite));
+        if (fromId is null && toId is null)
+            throw new ArgumentException("From and To cannot both be null.");
+
+        decimal? fromAvant = null, fromApres = null, toAvant = null, toApres = null;
+
+        if (fromId is int fid)
+        {
+            fromAvant = await StockBalanceQueries.GetBalanceAsync(db, produitId, fid, cancellationToken);
+            fromApres = fromAvant - quantite;
+        }
+
+        if (toId is int tid)
+        {
+            toAvant = await StockBalanceQueries.GetBalanceAsync(db, produitId, tid, cancellationToken);
+            toApres = toAvant + quantite;
+        }
+
+        db.MouvementsStock.Add(new MouvementStock
+        {
+            ProduitId = produitId,
+            FromLocationId = fromId,
+            ToLocationId = toId,
+            Quantite = quantite,
+            FromAvant = fromAvant,
+            FromApres = fromApres,
+            ToAvant = toAvant,
+            ToApres = toApres,
+            OrigineType = origineType,
+            OrigineId = origineId,
+            Note = note ?? string.Empty,
+            CreatedByUserId = createdByUserId
+        });
+    }
 }

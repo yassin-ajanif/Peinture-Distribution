@@ -38,7 +38,6 @@ public static class ProduitDisplayQueries
                 PrixAchatHT = p.PrixAchatHT,
                 PrixVenteHT = p.PrixVenteHT,
                 TauxTVA = p.TauxTVA,
-                StockActuel = p.StockActuel,
                 StockMinimum = p.StockMinimum,
                 CategorieId = p.CategorieId,
                 Actif = p.Actif,

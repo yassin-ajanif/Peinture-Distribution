@@ -2,6 +2,7 @@ using GestionCommerciale.Modules.AvoirFournisseur.Models;
 using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
 using GestionCommerciale.Modules.Reporting.ViewModels;
+using GestionCommerciale.Modules.Stock;
 using GestionCommerciale.Modules.Stock.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
@@ -443,15 +444,17 @@ public sealed class ReportService : IReportService
         var dev = await GetDeviseAsync(ct);
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
         var produits = await db.Produits.AsNoTracking()
-            .Where(p => p.StockActuel > 0)
-            .Select(p => new { p.StockActuel, p.PrixAchatHT, p.PrixVenteHT })
+            .Select(p => new { p.Id, p.PrixAchatHT, p.PrixVenteHT })
             .ToListAsync(ct);
+        var balances = await StockBalanceQueries.GetTotalBalancesAsync(db, produits.Select(p => p.Id), ct);
 
         decimal achatHt = 0, venteHt = 0;
         foreach (var p in produits)
         {
-            achatHt += p.StockActuel * p.PrixAchatHT;
-            venteHt += p.StockActuel * p.PrixVenteHT;
+            var qty = balances.GetValueOrDefault(p.Id);
+            if (qty <= 0) continue;
+            achatHt += qty * p.PrixAchatHT;
+            venteHt += qty * p.PrixVenteHT;
         }
         return (achatHt, venteHt, venteHt - achatHt, dev);
     }

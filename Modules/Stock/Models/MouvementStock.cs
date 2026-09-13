@@ -8,29 +8,54 @@ public class MouvementStock : BaseEntity
 {
     public int ProduitId { get; set; }
     public Produit? Produit { get; set; }
-    public TypeMouvement Type { get; set; }
-    public decimal StockAvant { get; set; }
+
+    /// <summary>Source location; null = outside the company.</summary>
+    public int? FromLocationId { get; set; }
+    public StockLocation? FromLocation { get; set; }
+
+    /// <summary>Destination location; null = left the company.</summary>
+    public int? ToLocationId { get; set; }
+    public StockLocation? ToLocation { get; set; }
+
+    /// <summary>Always positive amount moved.</summary>
     public decimal Quantite { get; set; }
+
+    public decimal? FromAvant { get; set; }
+    public decimal? FromApres { get; set; }
+    public decimal? ToAvant { get; set; }
+    public decimal? ToApres { get; set; }
 
     public string OrigineType { get; set; } = string.Empty;
     public int? OrigineId { get; set; }
     public string Note { get; set; } = string.Empty;
 
     [NotMapped]
-    public decimal StockApres => Type switch
+    public TypeMouvement Type
     {
-        TypeMouvement.Entree => StockAvant + Quantite,
-        TypeMouvement.Sortie => StockAvant - Quantite,
-        TypeMouvement.Ajustement => StockAvant + Quantite,
-        _ => StockAvant
-    };
+        get
+        {
+            if (FromLocationId is null && ToLocationId is not null)
+                return TypeMouvement.Entree;
+            if (FromLocationId is not null && ToLocationId is null)
+                return TypeMouvement.Sortie;
+            return TypeMouvement.Ajustement;
+        }
+    }
+
+    [NotMapped]
+    public decimal StockAvant => FromAvant ?? ToAvant ?? 0m;
+
+    [NotMapped]
+    public decimal StockApres => FromApres ?? ToApres ?? StockAvant;
 
     [NotMapped]
     public decimal SignedQuantite => Type switch
     {
         TypeMouvement.Sortie => -Math.Abs(Quantite),
         TypeMouvement.Entree => Math.Abs(Quantite),
-        TypeMouvement.Ajustement => Quantite,
+        TypeMouvement.Ajustement => FromLocationId is not null && ToLocationId is null
+            ? -Math.Abs(Quantite)
+            : Math.Abs(Quantite),
         _ => Quantite
     };
 

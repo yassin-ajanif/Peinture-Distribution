@@ -277,6 +277,7 @@ public partial class ProduitsViewModel : BaseViewModel
                 .Skip(Pagination.Skip)
                 .Take(Pagination.PageSize)
                 .ToListAsync(cancellationToken);
+            await StockBalanceQueries.HydrateStockActuelAsync(db, list, cancellationToken);
             Produits.Clear();
             foreach (var p in list) Produits.Add(p);
             Pagination.TotalCount = total;
@@ -576,7 +577,6 @@ public partial class ProduitsViewModel : BaseViewModel
                     PrixAchatHT = FichePrixAchatHt,
                     PrixVenteHT = FichePrixVenteHt,
                     TauxTVA = FicheTauxTva,
-                    StockActuel = 0,
                     StockMinimum = FicheStockMinimum,
                     Actif = FicheActif,
                     CreatedByUserId = _session.UserId,
