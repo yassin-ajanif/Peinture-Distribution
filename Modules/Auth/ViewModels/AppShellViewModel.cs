@@ -78,6 +78,7 @@ public partial class AppShellViewModel : BaseViewModel
     [ObservableProperty] private string _navStockAdmin = string.Empty;
     [ObservableProperty] private string _navStock = string.Empty;
     [ObservableProperty] private string _navProduits = string.Empty;
+    [ObservableProperty] private string _navVendeurs = string.Empty;
     [ObservableProperty] private string _navReports = string.Empty;
     [ObservableProperty] private string _navSettings = string.Empty;
 
@@ -101,6 +102,7 @@ public partial class AppShellViewModel : BaseViewModel
     [ObservableProperty] private bool _isNavFacturesFournisseurActive;
     [ObservableProperty] private bool _isNavStockActive;
     [ObservableProperty] private bool _isNavProduitsActive;
+    [ObservableProperty] private bool _isNavVendeursActive;
     [ObservableProperty] private bool _isNavReportsActive;
     [ObservableProperty] private bool _isNavSettingsActive;
 
@@ -126,6 +128,7 @@ public partial class AppShellViewModel : BaseViewModel
         NavStockAdmin = _locale.T("Nav_StockAdmin");
         NavStock = _locale.T("Nav_Stock");
         NavProduits = _locale.T("Nav_Produits");
+        NavVendeurs = _locale.T("Nav_Vendeurs");
         NavReports = _locale.T("Nav_Reports");
         NavSettings = _locale.T("Nav_Settings");
         Title = NavHome;
@@ -183,6 +186,7 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavFournisseurs => _session.CanAccessFournisseurs;
     public bool ShowNavStock => _session.CanAccessStock;
     public bool ShowNavProduits => _session.CanAccessStock;
+    public bool ShowNavVendeurs => _session.CanAccessUsers;
     public bool ShowNavDevis => _session.CanAccessDevis;
     public bool ShowNavBCC => _session.CanAccessDevis;
     public bool ShowNavBL => false;
@@ -224,6 +228,9 @@ public partial class AppShellViewModel : BaseViewModel
 
     [RelayCommand]
     private void GoProduits() => _workspace.Open(_sp.GetRequiredService<ProduitsViewModel>());
+
+    [RelayCommand]
+    private void GoVendeurs() => _workspace.Open(_sp.GetRequiredService<VendeursViewModel>());
 
     [RelayCommand]
     private void GoReports()
@@ -319,6 +326,7 @@ public partial class AppShellViewModel : BaseViewModel
         IsNavFacturesFournisseurActive = p is FactureFournisseurListViewModel or FactureFournisseurEditViewModel;
         IsNavStockActive = p is StockMainViewModel;
         IsNavProduitsActive = p is ProduitsViewModel;
+        IsNavVendeursActive = p is VendeursViewModel;
         IsNavReportsActive = p is ReportsListViewModel;
         IsNavSettingsActive = p is SettingsViewModel;
     }

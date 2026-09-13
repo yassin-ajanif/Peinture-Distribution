@@ -111,6 +111,10 @@
                     Background="{Binding IsNavProduitsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavProduitsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
                     BorderBrush="{Binding IsNavProduitsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
+            <Button Content="{Binding NavVendeurs}" Command="{Binding GoVendeursCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavVendeurs}"
+                    Background="{Binding IsNavVendeursActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
+                    Foreground="{Binding IsNavVendeursActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"
+                    BorderBrush="{Binding IsNavVendeursActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=border}"/>
             <Button Content="{Binding NavReports}" Command="{Binding GoReportsCommand}" HorizontalAlignment="Stretch" IsVisible="{Binding ShowNavReports}"
                     Background="{Binding IsNavReportsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=bg}"
                     Foreground="{Binding IsNavReportsActive, Converter={x:Static conv:NavTabHighlightConverter.Instance}, ConverterParameter=fg}"

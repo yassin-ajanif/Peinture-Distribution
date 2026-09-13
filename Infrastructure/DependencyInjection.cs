@@ -85,6 +85,7 @@ public static class DependencyInjection
         services.AddTransient<TiersDetailViewModel>();
         services.AddTransient<StockMainViewModel>();
         services.AddTransient<ProduitsViewModel>();
+        services.AddTransient<VendeursViewModel>();
         services.AddTransient<DevisListViewModel>();
         services.AddTransient<DevisEditViewModel>();
         services.AddTransient<BCVListViewModel>();
