@@ -96,4 +96,13 @@ public class MouvementStock : BaseEntity
 
     [NotMapped]
     public bool HasUnitPriceDetail => !string.IsNullOrEmpty(UnitPriceDetail);
+
+    [NotMapped]
+    public string FromLocationLabel { get; set; } = "—";
+
+    [NotMapped]
+    public string ToLocationLabel { get; set; } = "—";
+
+    [NotMapped]
+    public string TypeLabel { get; set; } = string.Empty;
 }
