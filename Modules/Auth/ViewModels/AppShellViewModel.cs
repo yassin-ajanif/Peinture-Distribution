@@ -9,6 +9,7 @@ using GestionCommerciale.Modules.FactureFournisseur.ViewModels;
 using GestionCommerciale.Modules.Livraison.ViewModels;
 using GestionCommerciale.Modules.CommandeFournisseur.ViewModels;
 using GestionCommerciale.Modules.CommandeClient.ViewModels;
+using GestionCommerciale.Modules.Personnel.ViewModels;
 using GestionCommerciale.Modules.Pos.ViewModels;
 using GestionCommerciale.Modules.Preparation.ViewModels;
 using GestionCommerciale.Modules.Reception.ViewModels;
@@ -60,6 +61,9 @@ public partial class AppShellViewModel : BaseViewModel
 
     [ObservableProperty] private string _navHome = string.Empty;
     [ObservableProperty] private string _navPos = string.Empty;
+    [ObservableProperty] private string _navDistribution = string.Empty;
+    [ObservableProperty] private string _navBonCharge = string.Empty;
+    [ObservableProperty] private string _navBonDecharge = string.Empty;
     [ObservableProperty] private string _navVente = string.Empty;
     [ObservableProperty] private string _navAchat = string.Empty;
     [ObservableProperty] private string _navClients = string.Empty;
@@ -87,6 +91,8 @@ public partial class AppShellViewModel : BaseViewModel
 
     [ObservableProperty] private bool _isNavHomeActive;
     [ObservableProperty] private bool _isNavPosActive;
+    [ObservableProperty] private bool _isNavBonChargeActive;
+    [ObservableProperty] private bool _isNavBonDechargeActive;
     [ObservableProperty] private bool _isNavClientsActive;
     [ObservableProperty] private bool _isNavFournisseursActive;
     [ObservableProperty] private bool _isNavDevisActive;
@@ -110,6 +116,9 @@ public partial class AppShellViewModel : BaseViewModel
     {
         NavHome = _locale.T("Nav_Home");
         NavPos = _locale.T("Nav_Pos");
+        NavDistribution = _locale.T("Nav_Distribution");
+        NavBonCharge = _locale.T("Nav_BonCharge");
+        NavBonDecharge = _locale.T("Nav_BonDecharge");
         NavVente = _locale.T("Nav_Vente");
         NavAchat = _locale.T("Nav_Achat");
         NavClients = _locale.T("Nav_Clients");
@@ -134,17 +143,33 @@ public partial class AppShellViewModel : BaseViewModel
         Title = NavHome;
     }
 
+    [ObservableProperty] private bool _distributionNavExpanded;
     [ObservableProperty] private bool _venteNavExpanded;
     [ObservableProperty] private bool _achatNavExpanded;
     [ObservableProperty] private bool _footerNavExpanded;
 
+    public string DistributionNavArrow => DistributionNavExpanded ? "\u25BC" : "\u25B6";
     public string VenteNavArrow => VenteNavExpanded ? "\u25BC" : "\u25B6";
     public string AchatNavArrow => AchatNavExpanded ? "\u25BC" : "\u25B6";
     public string FooterNavArrow => FooterNavExpanded ? "\u25BC" : "\u25B6";
 
+    partial void OnDistributionNavExpandedChanged(bool value) => OnPropertyChanged(nameof(DistributionNavArrow));
     partial void OnVenteNavExpandedChanged(bool value) => OnPropertyChanged(nameof(VenteNavArrow));
     partial void OnAchatNavExpandedChanged(bool value) => OnPropertyChanged(nameof(AchatNavArrow));
     partial void OnFooterNavExpandedChanged(bool value) => OnPropertyChanged(nameof(FooterNavArrow));
+
+    [RelayCommand]
+    private void ToggleDistributionNav()
+    {
+        var open = !DistributionNavExpanded;
+        DistributionNavExpanded = open;
+        if (open)
+        {
+            VenteNavExpanded = false;
+            AchatNavExpanded = false;
+            FooterNavExpanded = false;
+        }
+    }
 
     [RelayCommand]
     private void ToggleVenteNav()
@@ -153,6 +178,7 @@ public partial class AppShellViewModel : BaseViewModel
         VenteNavExpanded = open;
         if (open)
         {
+            DistributionNavExpanded = false;
             AchatNavExpanded = false;
             FooterNavExpanded = false;
         }
@@ -165,6 +191,7 @@ public partial class AppShellViewModel : BaseViewModel
         AchatNavExpanded = open;
         if (open)
         {
+            DistributionNavExpanded = false;
             VenteNavExpanded = false;
             FooterNavExpanded = false;
         }
@@ -177,6 +204,7 @@ public partial class AppShellViewModel : BaseViewModel
         FooterNavExpanded = open;
         if (open)
         {
+            DistributionNavExpanded = false;
             VenteNavExpanded = false;
             AchatNavExpanded = false;
         }
@@ -187,6 +215,8 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavStock => _session.CanAccessStock;
     public bool ShowNavProduits => _session.CanAccessStock;
     public bool ShowNavVendeurs => _session.CanAccessUsers;
+    public bool ShowNavBonCharge => _session.CanAccessStock;
+    public bool ShowNavBonDecharge => _session.CanAccessStock;
     public bool ShowNavDevis => _session.CanAccessDevis;
     public bool ShowNavBCC => _session.CanAccessDevis;
     public bool ShowNavBL => false;
@@ -231,6 +261,12 @@ public partial class AppShellViewModel : BaseViewModel
 
     [RelayCommand]
     private void GoVendeurs() => _workspace.Open(_sp.GetRequiredService<VendeursViewModel>());
+
+    [RelayCommand]
+    private void GoBonCharge() => _workspace.Open(_sp.GetRequiredService<BonChargeListViewModel>());
+
+    [RelayCommand]
+    private void GoBonDecharge() => _workspace.Open(_sp.GetRequiredService<BonDechargeListViewModel>());
 
     [RelayCommand]
     private void GoReports()
@@ -327,6 +363,8 @@ public partial class AppShellViewModel : BaseViewModel
         IsNavStockActive = p is StockMainViewModel;
         IsNavProduitsActive = p is ProduitsViewModel;
         IsNavVendeursActive = p is VendeursViewModel;
+        IsNavBonChargeActive = p is BonChargeListViewModel;
+        IsNavBonDechargeActive = p is BonDechargeListViewModel;
         IsNavReportsActive = p is ReportsListViewModel;
         IsNavSettingsActive = p is SettingsViewModel;
     }

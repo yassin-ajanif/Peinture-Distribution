@@ -31,6 +31,7 @@ internal static class UiTranslationExtras
         ["PrintPreview_ZoomIn"] = ("+", "+"),
         ["PrintPreview_ZoomReset"] = ("100 %", "100 %"),
         ["Btn_Apply"] = ("Appliquer", "تطبيق"),
+        ["Lbl_ModuleComingSoon"] = ("Module en cours de construction.", "الوحدة قيد الإنشاء."),
         ["Btn_Connect"] = ("Se connecter", "دخول"),
         ["Btn_NewProduct"] = ("Nouveau produit", "منتج جديد"),
         ["Btn_NewVendeur"] = ("Nouveau vendeur", "بائع جديد"),

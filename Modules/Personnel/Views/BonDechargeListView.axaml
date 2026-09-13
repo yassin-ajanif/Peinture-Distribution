@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:GestionCommerciale.Modules.Personnel.ViewModels"
+             x:Class="GestionCommerciale.Modules.Personnel.Views.BonDechargeListView"
+             x:DataType="vm:BonDechargeListViewModel">
+  <StackPanel Margin="16" Spacing="8">
+    <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold"/>
+    <TextBlock Text="{Binding Placeholder}" Opacity="0.7" TextWrapping="Wrap"/>
+  </StackPanel>
+</UserControl>

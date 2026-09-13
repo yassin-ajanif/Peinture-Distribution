@@ -11,6 +11,7 @@ using GestionCommerciale.Modules.Livraison.Services;
 using GestionCommerciale.Modules.Livraison.ViewModels;
 using GestionCommerciale.Modules.CommandeFournisseur.ViewModels;
 using GestionCommerciale.Modules.CommandeClient.ViewModels;
+using GestionCommerciale.Modules.Personnel.ViewModels;
 using GestionCommerciale.Modules.Pos.Services;
 using GestionCommerciale.Modules.Pos.ViewModels;
 using GestionCommerciale.Modules.Preparation.Services;
@@ -88,6 +89,8 @@ public static class DependencyInjection
         services.AddTransient<StockMovementsHistoryViewModel>();
         services.AddTransient<ProduitsViewModel>();
         services.AddTransient<VendeursViewModel>();
+        services.AddTransient<BonChargeListViewModel>();
+        services.AddTransient<BonDechargeListViewModel>();
         services.AddTransient<DevisListViewModel>();
         services.AddTransient<DevisEditViewModel>();
         services.AddTransient<BCVListViewModel>();
