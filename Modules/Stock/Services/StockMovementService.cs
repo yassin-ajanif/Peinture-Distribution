@@ -34,46 +34,9 @@ public sealed class StockMovementService : IStockMovementService
         int? createdByUserId,
         CancellationToken cancellationToken = default)
     {
-        _ = await db.Produits.FirstAsync(p => p.Id == produitId, cancellationToken);
         var depot = await _locations.GetOrCreateDefaultDepotAsync(db, cancellationToken);
-
-        int? fromId;
-        int? toId;
-        var absQty = Math.Abs(quantite);
-
-        switch (type)
-        {
-            case TypeMouvement.Entree:
-                fromId = null;
-                toId = depot.Id;
-                break;
-            case TypeMouvement.Sortie:
-                fromId = depot.Id;
-                toId = null;
-                break;
-            case TypeMouvement.Ajustement when quantite >= 0:
-                fromId = null;
-                toId = depot.Id;
-                break;
-            case TypeMouvement.Ajustement:
-                fromId = depot.Id;
-                toId = null;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type));
-        }
-
-        await ApplyLocationMovementAsync(
-            db,
-            produitId,
-            fromId,
-            toId,
-            absQty,
-            origineType,
-            origineId,
-            note,
-            createdByUserId,
-            cancellationToken);
+        await ApplyMovementAtLocationAsync(
+            db, produitId, type, quantite, depot.Id, origineType, origineId, note, createdByUserId, cancellationToken);
     }
 
     public Task ResyncBonLivraisonStockAsync(
@@ -95,31 +58,42 @@ public sealed class StockMovementService : IStockMovementService
             bonLivraisonId,
             noteDetail,
             desired,
+            stockLocationId: null,
             createdByUserId,
             useModificationNoteOnEdit: true,
             onPositiveEntreeDelta: null,
             cancellationToken);
     }
 
-    public Task ResyncBonPreparationStockAsync(
+    public async Task ResyncBonPreparationStockAsync(
         AppDbContext db,
         int bonPreparationId,
         string noteDetail,
         IEnumerable<(int ProduitId, decimal Quantite)> lines,
+        int stockLocationId,
         int? createdByUserId,
         CancellationToken cancellationToken = default)
     {
+        var location = await db.StockLocations.FirstOrDefaultAsync(l => l.Id == stockLocationId, cancellationToken)
+            ?? throw new InvalidOperationException("Emplacement de stock introuvable.");
+        if (!location.Actif)
+            throw new InvalidOperationException("Emplacement de stock inactif.");
+
+        await NeutralizeMovementsNotOnLocationAsync(
+            db, OrigineTypeBonPreparation, bonPreparationId, stockLocationId, createdByUserId, cancellationToken);
+
         var desired = lines
             .Where(l => l.ProduitId > 0 && l.Quantite > 0)
             .GroupBy(l => l.ProduitId)
             .ToDictionary(g => g.Key, g => -g.Sum(l => l.Quantite));
 
-        return SyncDocumentStockAsync(
+        await SyncDocumentStockAsync(
             db,
             OrigineTypeBonPreparation,
             bonPreparationId,
             noteDetail,
             desired,
+            stockLocationId,
             createdByUserId,
             useModificationNoteOnEdit: true,
             onPositiveEntreeDelta: null,
@@ -156,6 +130,7 @@ public sealed class StockMovementService : IStockMovementService
             bonReceptionId,
             noteDetail,
             desired,
+            stockLocationId: null,
             createdByUserId,
             useModificationNoteOnEdit: true,
             onPositiveEntreeDelta: async (produitId, entreeDelta, ct) =>
@@ -195,6 +170,7 @@ public sealed class StockMovementService : IStockMovementService
             avoirId,
             noteDetail,
             desired,
+            stockLocationId: null,
             createdByUserId,
             useModificationNoteOnEdit: true,
             onPositiveEntreeDelta: null,
@@ -223,6 +199,7 @@ public sealed class StockMovementService : IStockMovementService
             avoirFournisseurId,
             noteDetail,
             desired,
+            stockLocationId: null,
             createdByUserId,
             useModificationNoteOnEdit: true,
             onPositiveEntreeDelta: null,
@@ -235,11 +212,15 @@ public sealed class StockMovementService : IStockMovementService
         int origineId,
         string noteDetail,
         IReadOnlyDictionary<int, decimal> desiredSignedByProduit,
+        int? stockLocationId,
         int? createdByUserId,
         bool useModificationNoteOnEdit,
         Func<int, decimal, CancellationToken, Task>? onPositiveEntreeDelta,
         CancellationToken cancellationToken)
     {
+        var locationId = stockLocationId
+            ?? (await _locations.GetOrCreateDefaultDepotAsync(db, cancellationToken)).Id;
+
         var movements = await db.MouvementsStock
             .Where(m => m.OrigineType == origineType && m.OrigineId == origineId)
             .ToListAsync(cancellationToken);
@@ -247,6 +228,7 @@ public sealed class StockMovementService : IStockMovementService
         var documentHasPriorMovements = movements.Count > 0;
 
         var currentSignedByProduit = movements
+            .Where(m => TouchesLocation(m, locationId))
             .GroupBy(m => m.ProduitId)
             .ToDictionary(g => g.Key, g => g.Sum(m => m.SignedQuantite));
 
@@ -271,11 +253,12 @@ public sealed class StockMovementService : IStockMovementService
 
             if (delta > 0)
             {
-                await ApplyMovementAsync(
+                await ApplyMovementAtLocationAsync(
                     db,
                     produitId,
                     TypeMouvement.Entree,
                     delta,
+                    locationId,
                     origineType,
                     origineId,
                     note,
@@ -287,11 +270,12 @@ public sealed class StockMovementService : IStockMovementService
             }
             else
             {
-                await ApplyMovementAsync(
+                await ApplyMovementAtLocationAsync(
                     db,
                     produitId,
                     TypeMouvement.Sortie,
                     -delta,
+                    locationId,
                     origineType,
                     origineId,
                     note,
@@ -299,6 +283,110 @@ public sealed class StockMovementService : IStockMovementService
                     cancellationToken);
             }
         }
+    }
+
+    /// <summary>
+    /// When BP stock location changes, reverse prior movements that hit another location
+    /// so the new location sync starts from a clean net for this document.
+    /// </summary>
+    private async Task NeutralizeMovementsNotOnLocationAsync(
+        AppDbContext db,
+        string origineType,
+        int origineId,
+        int stockLocationId,
+        int? createdByUserId,
+        CancellationToken cancellationToken)
+    {
+        var movements = await db.MouvementsStock
+            .Where(m => m.OrigineType == origineType && m.OrigineId == origineId)
+            .ToListAsync(cancellationToken);
+
+        var foreign = movements.Where(m => !TouchesLocation(m, stockLocationId)).ToList();
+        if (foreign.Count == 0)
+            return;
+
+        var note = _locale.Tf("Stock_AnnulationNote", origineType);
+
+        foreach (var group in foreign.GroupBy(m => m.ProduitId))
+        {
+            var net = group.Sum(m => m.SignedQuantite);
+            if (net == 0) continue;
+
+            // Reverse net impact: if net was -5 (sortie), apply +5 entree on the foreign location(s).
+            // Prefer the From/To location that carried the net.
+            var sample = group.OrderByDescending(m => m.Id).First();
+            var foreignLocationId = sample.FromLocationId ?? sample.ToLocationId;
+            if (foreignLocationId is null) continue;
+
+            if (net < 0)
+            {
+                await ApplyMovementAtLocationAsync(
+                    db, group.Key, TypeMouvement.Entree, -net, foreignLocationId.Value,
+                    origineType, origineId, note, createdByUserId, cancellationToken);
+            }
+            else
+            {
+                await ApplyMovementAtLocationAsync(
+                    db, group.Key, TypeMouvement.Sortie, net, foreignLocationId.Value,
+                    origineType, origineId, note, createdByUserId, cancellationToken);
+            }
+        }
+    }
+
+    private static bool TouchesLocation(MouvementStock m, int locationId) =>
+        m.FromLocationId == locationId || m.ToLocationId == locationId;
+
+    private async Task ApplyMovementAtLocationAsync(
+        AppDbContext db,
+        int produitId,
+        TypeMouvement type,
+        decimal quantite,
+        int locationId,
+        string origineType,
+        int? origineId,
+        string? note,
+        int? createdByUserId,
+        CancellationToken cancellationToken)
+    {
+        _ = await db.Produits.FirstAsync(p => p.Id == produitId, cancellationToken);
+
+        int? fromId;
+        int? toId;
+        var absQty = Math.Abs(quantite);
+
+        switch (type)
+        {
+            case TypeMouvement.Entree:
+                fromId = null;
+                toId = locationId;
+                break;
+            case TypeMouvement.Sortie:
+                fromId = locationId;
+                toId = null;
+                break;
+            case TypeMouvement.Ajustement when quantite >= 0:
+                fromId = null;
+                toId = locationId;
+                break;
+            case TypeMouvement.Ajustement:
+                fromId = locationId;
+                toId = null;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type));
+        }
+
+        await ApplyLocationMovementAsync(
+            db,
+            produitId,
+            fromId,
+            toId,
+            absQty,
+            origineType,
+            origineId,
+            note,
+            createdByUserId,
+            cancellationToken);
     }
 
     private async Task ApplyLocationMovementAsync(

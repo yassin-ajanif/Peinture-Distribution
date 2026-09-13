@@ -37,6 +37,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     private readonly IPdfService _pdf;
     private readonly IPdfPrintService _pdfPrint;
     private readonly IStockMovementService _stock;
+    private readonly IStockLocationService _locations;
     private readonly ClientSoldeDisplay _clientSolde;
     private readonly IClientCreditLimitService _creditLimit;
 
@@ -54,6 +55,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         IPdfService pdf,
         IPdfPrintService pdfPrint,
         IStockMovementService stock,
+        IStockLocationService locations,
         IClientAccountStatementService clientLedger,
         IClientCreditLimitService creditLimit)
     {
@@ -70,6 +72,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         _pdf = pdf;
         _pdfPrint = pdfPrint;
         _stock = stock;
+        _locations = locations;
         _clientSolde = new ClientSoldeDisplay(clientLedger, locale);
         WhatsApp = new WhatsAppOpenHelper(dialog, locale);
         _creditLimit = creditLimit;
@@ -92,11 +95,14 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     public WhatsAppOpenHelper WhatsApp { get; }
     public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients => ClientLookup.Clients;
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
+    public ObservableCollection<StockLocationPickItem> StockLocations { get; } = [];
     public ObservableCollection<BonPreparationLineRow> Lignes { get; } = [];
     public ObservableCollection<BonPreparationPaiementRowViewModel> Paiements { get; } = [];
 
     [ObservableProperty] private int? _bonPreparationId;
     [ObservableProperty] private int _clientId;
+    [ObservableProperty] private int _stockLocationId = 1;
+    [ObservableProperty] private StockLocationPickItem? _selectedStockLocation;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedClient;
     [ObservableProperty] private string _numero = string.Empty;
     [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
@@ -122,6 +128,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     [ObservableProperty] private string _btnPrint = string.Empty;
     [ObservableProperty] private string _btnBack = string.Empty;
     [ObservableProperty] private string _btnSave = string.Empty;
+    [ObservableProperty] private string _lblStockLocation = string.Empty;
     [ObservableProperty] private string _menuDeleteBonPreparation = string.Empty;
     [ObservableProperty] private string _lblFactPayee = string.Empty;
     [ObservableProperty] private string _lblPaid = string.Empty;
@@ -190,6 +197,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         WhatsApp.RefreshLabels();
         BtnBack = _locale.T("Btn_Back");
         BtnSave = _locale.T("Btn_Save");
+        LblStockLocation = _locale.T("Lbl_StockLocation");
         MenuDeleteBonPreparation = _locale.T("Bp_MenuDelete");
         LblClient = _locale.T("Lbl_Client");
         WmClientSearch = _locale.T("Wm_SearchClient");
@@ -268,7 +276,9 @@ public partial class BonPreparationEditViewModel : BaseViewModel
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             var entity = await db.BonsPreparation.Include(f => f.Lignes).Include(f => f.Paiements).FirstAsync(f => f.Id == id, cancellationToken);
             await _stock.ResyncBonPreparationStockAsync(
-                db, entity.Id, entity.Numero, Enumerable.Empty<(int ProduitId, decimal Quantite)>(), _session.UserId, cancellationToken);
+                db, entity.Id, entity.Numero, Enumerable.Empty<(int ProduitId, decimal Quantite)>(),
+                entity.StockLocationId > 0 ? entity.StockLocationId : 1,
+                _session.UserId, cancellationToken);
             db.BonsPreparation.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
 
@@ -505,6 +515,9 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         {
             Numero = _locale.T("Bp_NewNumPlaceholder");
             ClientId = Clients.FirstOrDefault()?.Id ?? 0;
+            SelectStockLocation(StockLocations.FirstOrDefault(l => !l.IsVirtual)?.Id
+                ?? StockLocations.FirstOrDefault()?.Id
+                ?? 1);
             Date = new DateTimeOffset(DateTime.Today);
             DateEcheance = Date.AddDays(30);
             EstPayee = false;
@@ -519,6 +532,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         var f = await db.BonsPreparation.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
         Numero = f.Numero;
         ClientId = f.ClientId;
+        SelectStockLocation(f.StockLocationId);
         Date = new DateTimeOffset(f.Date);
         DateEcheance = new DateTimeOffset(f.DateEcheance);
         EstPayee = f.EstPayee;
@@ -563,6 +577,41 @@ public partial class BonPreparationEditViewModel : BaseViewModel
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);
         Produits.Clear();
         foreach (var p in produits) Produits.Add(p);
+
+        var locations = await _locations.GetActiveLocationsAsync(db, cancellationToken);
+        StockLocations.Clear();
+        foreach (var loc in locations)
+        {
+            var kind = loc.IsVirtual ? _locale.T("Lbl_StockVirtual") : _locale.T("Lbl_StockPhysical");
+            StockLocations.Add(new StockLocationPickItem
+            {
+                Id = loc.Id,
+                IsVirtual = loc.IsVirtual,
+                Label = $"{loc.Nom} ({kind})"
+            });
+        }
+
+        if (SelectedStockLocation is null || StockLocations.All(l => l.Id != SelectedStockLocation.Id))
+            SelectStockLocation(StockLocationId);
+    }
+
+    private void SelectStockLocation(int locationId)
+    {
+        _suppressStockLocationSync = true;
+        StockLocationId = locationId;
+        SelectedStockLocation = StockLocations.FirstOrDefault(l => l.Id == locationId)
+            ?? StockLocations.FirstOrDefault();
+        if (SelectedStockLocation is not null)
+            StockLocationId = SelectedStockLocation.Id;
+        _suppressStockLocationSync = false;
+    }
+
+    private bool _suppressStockLocationSync;
+
+    partial void OnSelectedStockLocationChanged(StockLocationPickItem? value)
+    {
+        if (_suppressStockLocationSync || value is null) return;
+        StockLocationId = value.Id;
     }
 
     public void Load(int? id) => _ = LoadAsync(id, CancellationToken.None);
@@ -655,6 +704,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     ClientId = ClientId,
+                    StockLocationId = StockLocationId > 0 ? StockLocationId : 1,
                     Date = Date.DateTime,
                     DateEcheance = DateEcheance.DateTime,
                     EstPayee = EstPayee,
@@ -686,6 +736,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
                 entity = await db.BonsPreparation.Include(f => f.Lignes).FirstAsync(f => f.Id == BonPreparationId, cancellationToken);
 
                 entity.ClientId = ClientId;
+                entity.StockLocationId = StockLocationId > 0 ? StockLocationId : 1;
                 entity.Date = Date.DateTime;
                 entity.DateEcheance = DateEcheance.DateTime;
                 entity.EstPayee = EstPayee;
@@ -837,6 +888,8 @@ public partial class BonPreparationEditViewModel : BaseViewModel
             .Where(l => l.ProduitId > 0)
             .Select(l => (l.ProduitId, l.Quantite));
         return _stock.ResyncBonPreparationStockAsync(
-            db, entity.Id, entity.Numero, lines, _session.UserId, cancellationToken);
+            db, entity.Id, entity.Numero, lines,
+            entity.StockLocationId > 0 ? entity.StockLocationId : 1,
+            _session.UserId, cancellationToken);
     }
 }

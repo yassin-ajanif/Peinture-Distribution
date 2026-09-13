@@ -211,7 +211,9 @@ public partial class BonPreparationListViewModel : BaseViewModel
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             var entity = await db.BonsPreparation.Include(f => f.Lignes).Include(f => f.Paiements).FirstAsync(f => f.Id == item.Id, cancellationToken);
             await _stock.ResyncBonPreparationStockAsync(
-                db, entity.Id, entity.Numero, Enumerable.Empty<(int ProduitId, decimal Quantite)>(), null, cancellationToken);
+                db, entity.Id, entity.Numero, Enumerable.Empty<(int ProduitId, decimal Quantite)>(),
+                entity.StockLocationId > 0 ? entity.StockLocationId : 1,
+                null, cancellationToken);
             db.BonsPreparation.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
 

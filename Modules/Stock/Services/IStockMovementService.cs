@@ -29,6 +29,7 @@ public interface IStockMovementService
         int bonPreparationId,
         string noteDetail,
         IEnumerable<(int ProduitId, decimal Quantite)> lines,
+        int stockLocationId,
         int? createdByUserId,
         CancellationToken cancellationToken = default);
 

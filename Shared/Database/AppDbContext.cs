@@ -207,6 +207,11 @@ public class AppDbContext : DbContext
         {
             e.HasMany(f => f.Lignes).WithOne(l => l.BonPreparation).HasForeignKey(l => l.BonPreparationId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(f => f.Paiements).WithOne(p => p.BonPreparation).HasForeignKey(p => p.BonPreparationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(f => f.StockLocation).WithMany()
+                .HasForeignKey(f => f.StockLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.Property(f => f.StockLocationId).HasDefaultValue(1);
+            e.HasIndex(f => f.StockLocationId);
         });
 
         modelBuilder.Entity<FactureLigne>(e =>

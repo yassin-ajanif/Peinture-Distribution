@@ -9,6 +9,7 @@ public interface IStockLocationService
 {
     Task<StockLocation> GetOrCreateDefaultDepotAsync(AppDbContext db, CancellationToken cancellationToken = default);
     Task<StockLocation> GetOrCreateVirtualForUserAsync(AppDbContext db, User user, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StockLocation>> GetActiveLocationsAsync(AppDbContext db, CancellationToken cancellationToken = default);
 }
 
 public sealed class StockLocationService : IStockLocationService
@@ -63,5 +64,17 @@ public sealed class StockLocationService : IStockLocationService
         db.StockLocations.Add(location);
         await db.SaveChangesAsync(cancellationToken);
         return location;
+    }
+
+    public async Task<IReadOnlyList<StockLocation>> GetActiveLocationsAsync(
+        AppDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        return await db.StockLocations.AsNoTracking()
+            .Where(l => l.Actif)
+            .OrderBy(l => l.IsVirtual)
+            .ThenBy(l => l.Nom == StockLocation.DefaultDepotNom ? 0 : 1)
+            .ThenBy(l => l.Nom)
+            .ToListAsync(cancellationToken);
     }
 }

@@ -29,6 +29,7 @@ public static class UiTranslations
         ["Nav_Produits"] = ("Produits", "المنتجات"),
         ["Nav_Reporting"] = ("Reporting", "التقارير"),
         ["Nav_Users"] = ("Utilisateurs", "المستخدمون"),
+        ["Nav_Vendeurs"] = ("Vendeurs", "البائعون"),
         ["Nav_Settings"] = ("Paramètres", "الإعدادات"),
 
         ["Settings_Title"] = ("Paramètres", "الإعدادات"),
