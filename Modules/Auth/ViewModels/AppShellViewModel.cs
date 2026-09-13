@@ -114,7 +114,7 @@ public partial class AppShellViewModel : BaseViewModel
         NavDevis = _locale.T("Nav_Devis");
         NavBcc = _locale.T("Nav_BCC");
         NavBl = _locale.T("Nav_BL");
-        NavBonPreparation = _locale.T("Nav_BonPreparation");
+        NavBonPreparation = _locale.T("Nav_BL");
         NavFactures = _locale.T("Nav_Factures");
         NavAvoirs = _locale.T("Nav_Avoirs");
         NavAvoirFournisseur = _locale.T("Nav_AvoirFournisseur");
@@ -131,9 +131,9 @@ public partial class AppShellViewModel : BaseViewModel
         Title = NavHome;
     }
 
-    [ObservableProperty] private bool _venteNavExpanded = true;
-    [ObservableProperty] private bool _achatNavExpanded = true;
-    [ObservableProperty] private bool _footerNavExpanded = true;
+    [ObservableProperty] private bool _venteNavExpanded;
+    [ObservableProperty] private bool _achatNavExpanded;
+    [ObservableProperty] private bool _footerNavExpanded;
 
     public string VenteNavArrow => VenteNavExpanded ? "\u25BC" : "\u25B6";
     public string AchatNavArrow => AchatNavExpanded ? "\u25BC" : "\u25B6";
@@ -144,13 +144,40 @@ public partial class AppShellViewModel : BaseViewModel
     partial void OnFooterNavExpandedChanged(bool value) => OnPropertyChanged(nameof(FooterNavArrow));
 
     [RelayCommand]
-    private void ToggleVenteNav() => VenteNavExpanded = !VenteNavExpanded;
+    private void ToggleVenteNav()
+    {
+        var open = !VenteNavExpanded;
+        VenteNavExpanded = open;
+        if (open)
+        {
+            AchatNavExpanded = false;
+            FooterNavExpanded = false;
+        }
+    }
 
     [RelayCommand]
-    private void ToggleAchatNav() => AchatNavExpanded = !AchatNavExpanded;
+    private void ToggleAchatNav()
+    {
+        var open = !AchatNavExpanded;
+        AchatNavExpanded = open;
+        if (open)
+        {
+            VenteNavExpanded = false;
+            FooterNavExpanded = false;
+        }
+    }
 
     [RelayCommand]
-    private void ToggleFooterNav() => FooterNavExpanded = !FooterNavExpanded;
+    private void ToggleFooterNav()
+    {
+        var open = !FooterNavExpanded;
+        FooterNavExpanded = open;
+        if (open)
+        {
+            VenteNavExpanded = false;
+            AchatNavExpanded = false;
+        }
+    }
 
     public bool ShowNavClients => _session.CanAccessClients;
     public bool ShowNavFournisseurs => _session.CanAccessFournisseurs;
@@ -158,11 +185,11 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavProduits => _session.CanAccessStock;
     public bool ShowNavDevis => _session.CanAccessDevis;
     public bool ShowNavBCC => _session.CanAccessDevis;
-    public bool ShowNavBL => _session.CanAccessBL;
+    public bool ShowNavBL => false;
     public bool ShowNavBonPreparation => _session.CanAccessPreparation;
     public bool ShowNavBR => _session.CanAccessBR;
     public bool ShowNavBC => _session.CanAccessBC;
-    public bool ShowNavFactures => _session.CanAccessFacturation;
+    public bool ShowNavFactures => false;
     public bool ShowNavAvoirs => _session.CanAccessAvoir;
     public bool ShowNavFacturesFournisseur => _session.CanAccessFacturation;
     public bool ShowNavAvoirFournisseur => _session.CanAccessAvoir;
