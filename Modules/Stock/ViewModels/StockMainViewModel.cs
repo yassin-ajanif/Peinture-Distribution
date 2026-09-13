@@ -18,14 +18,19 @@ public partial class StockMainViewModel : BaseViewModel
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IStockMovementService _stock;
+    private readonly IStockRetrievalService _stockRetrieval;
+    private readonly IStockLocationService _locations;
     private readonly IDialogService _dialog;
     private readonly ICurrentUserSession _session;
     private readonly ILocaleService _locale;
     private readonly IServiceProvider _sp;
+    private bool _suppressLocationReload;
 
     public StockMainViewModel(
         IDbContextFactory<AppDbContext> dbFactory,
         IStockMovementService stock,
+        IStockRetrievalService stockRetrieval,
+        IStockLocationService locations,
         IDialogService dialog,
         ICurrentUserSession session,
         ILocaleService locale,
@@ -33,6 +38,8 @@ public partial class StockMainViewModel : BaseViewModel
     {
         _dbFactory = dbFactory;
         _stock = stock;
+        _stockRetrieval = stockRetrieval;
+        _locations = locations;
         _dialog = dialog;
         _session = session;
         _locale = locale;
@@ -47,6 +54,7 @@ public partial class StockMainViewModel : BaseViewModel
     [ObservableProperty] private string _lblCatalog = string.Empty;
     [ObservableProperty] private string _helpStock = string.Empty;
     [ObservableProperty] private string _wmSearch = string.Empty;
+    [ObservableProperty] private string _lblStockLocation = string.Empty;
     [ObservableProperty] private string _colRef = string.Empty;
     [ObservableProperty] private string _colDesignation = string.Empty;
     [ObservableProperty] private string _colStock = string.Empty;
@@ -66,6 +74,7 @@ public partial class StockMainViewModel : BaseViewModel
         LblCatalog = _locale.T("Lbl_Catalog");
         HelpStock = _locale.T("Lbl_StockMainHelp");
         WmSearch = _locale.T("Wm_SearchProducts");
+        LblStockLocation = _locale.T("Lbl_StockLocation");
         ColRef = _locale.T("Lbl_ColRef");
         ColDesignation = _locale.T("Lbl_ColDesignation");
         ColStock = _locale.T("Lbl_ColStock");
@@ -76,6 +85,31 @@ public partial class StockMainViewModel : BaseViewModel
         WmAdjustNote = _locale.T("Wm_AdjustNote");
         BtnApply = _locale.T("Btn_Apply");
         BtnHistory = _locale.T("Btn_StockHistory");
+        RelabelStockLocations();
+    }
+
+    private void RelabelStockLocations()
+    {
+        if (StockLocations.Count == 0) return;
+        var selectedId = SelectedStockLocation?.Id;
+        _suppressLocationReload = true;
+        var items = StockLocations.ToList();
+        StockLocations.Clear();
+        foreach (var item in items)
+        {
+            var kind = item.IsVirtual ? _locale.T("Lbl_StockVirtual") : _locale.T("Lbl_StockPhysical");
+            StockLocations.Add(new StockLocationPickItem
+            {
+                Id = item.Id,
+                Nom = item.Nom,
+                IsVirtual = item.IsVirtual,
+                Label = $"{item.Nom} ({kind})"
+            });
+        }
+        SelectedStockLocation = StockLocations.FirstOrDefault(l => l.Id == selectedId)
+            ?? StockLocations.FirstOrDefault(l => !l.IsVirtual)
+            ?? StockLocations.FirstOrDefault();
+        _suppressLocationReload = false;
     }
 
     partial void OnProductSearchChanged(string value)
@@ -85,13 +119,20 @@ public partial class StockMainViewModel : BaseViewModel
     }
 
     public ObservableCollection<Produit> Produits { get; } = [];
+    public ObservableCollection<StockLocationPickItem> StockLocations { get; } = [];
 
     [ObservableProperty] private Produit? _selectedProduit;
-
+    [ObservableProperty] private StockLocationPickItem? _selectedStockLocation;
     [ObservableProperty] private string _productSearch = string.Empty;
-
     [ObservableProperty] private decimal _ajustementDelta;
     [ObservableProperty] private string _ajustementNote = string.Empty;
+
+    partial void OnSelectedStockLocationChanged(StockLocationPickItem? value)
+    {
+        if (_suppressLocationReload || value is null) return;
+        Pagination.CurrentPage = 1;
+        _ = LoadProduitsAsync(CancellationToken.None);
+    }
 
     [RelayCommand]
     private async Task LoadProduitsAsync(CancellationToken cancellationToken)
@@ -101,6 +142,11 @@ public partial class StockMainViewModel : BaseViewModel
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            await EnsureLocationsLoadedAsync(db, cancellationToken);
+
+            var locationId = SelectedStockLocation?.Id
+                ?? (await _locations.GetOrCreateDefaultDepotAsync(db, cancellationToken)).Id;
+
             var q = db.Produits.AsNoTracking()
                 .WhereSearchMatches(ProductSearch)
                 .SelectForListWithoutImageData();
@@ -109,7 +155,7 @@ public partial class StockMainViewModel : BaseViewModel
                 .OrderBy(p => p.Reference)
                 .Skip(Pagination.Skip).Take(Pagination.PageSize)
                 .ToListAsync(cancellationToken);
-            await StockBalanceQueries.HydrateStockActuelAsync(db, list, cancellationToken);
+            await _stockRetrieval.HydrateProductStocksAsync(db, list, locationId, cancellationToken);
             Produits.Clear();
             foreach (var p in list) Produits.Add(p);
             Pagination.TotalCount = total;
@@ -120,6 +166,30 @@ public partial class StockMainViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private async Task EnsureLocationsLoadedAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (StockLocations.Count > 0) return;
+
+        var locations = await _locations.GetActiveLocationsAsync(db, cancellationToken);
+        _suppressLocationReload = true;
+        StockLocations.Clear();
+        foreach (var loc in locations)
+        {
+            var kind = loc.IsVirtual ? _locale.T("Lbl_StockVirtual") : _locale.T("Lbl_StockPhysical");
+            StockLocations.Add(new StockLocationPickItem
+            {
+                Id = loc.Id,
+                Nom = loc.Nom,
+                IsVirtual = loc.IsVirtual,
+                Label = $"{loc.Nom} ({kind})"
+            });
+        }
+
+        SelectedStockLocation = StockLocations.FirstOrDefault(l => !l.IsVirtual)
+            ?? StockLocations.FirstOrDefault();
+        _suppressLocationReload = false;
     }
 
     partial void OnSelectedProduitChanged(Produit? value)
@@ -137,6 +207,13 @@ public partial class StockMainViewModel : BaseViewModel
         if (AjustementDelta == 0)
         {
             await _dialog.ShowErrorAsync(_locale.T("Stock_Title"), _locale.T("Stock_ErrVariation"), cancellationToken);
+            return;
+        }
+
+        var locationId = SelectedStockLocation?.Id;
+        if (locationId is null)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Stock_Title"), _locale.T("Lbl_StockLocation"), cancellationToken);
             return;
         }
 
@@ -160,7 +237,8 @@ public partial class StockMainViewModel : BaseViewModel
                 null,
                 detailNote,
                 _session.UserId,
-                cancellationToken);
+                cancellationToken,
+                locationId);
             await db.SaveChangesAsync(cancellationToken);
             await trx.CommitAsync(cancellationToken);
             AjustementDelta = 0;

@@ -20,9 +20,7 @@ public class MouvementStock : BaseEntity
     /// <summary>Always positive amount moved.</summary>
     public decimal Quantite { get; set; }
 
-    public decimal? FromAvant { get; set; }
     public decimal? FromApres { get; set; }
-    public decimal? ToAvant { get; set; }
     public decimal? ToApres { get; set; }
 
     public string OrigineType { get; set; } = string.Empty;
@@ -43,10 +41,7 @@ public class MouvementStock : BaseEntity
     }
 
     [NotMapped]
-    public decimal StockAvant => FromAvant ?? ToAvant ?? 0m;
-
-    [NotMapped]
-    public decimal StockApres => FromApres ?? ToApres ?? StockAvant;
+    public decimal StockApres => FromApres ?? ToApres ?? 0m;
 
     [NotMapped]
     public decimal SignedQuantite => Type switch

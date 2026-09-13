@@ -49,6 +49,7 @@ public static class DependencyInjection
         services.AddSingleton<ILocaleService, LocaleService>();
         services.AddSingleton<IDocumentNumberService, DocumentNumberService>();
         services.AddSingleton<IStockLocationService, StockLocationService>();
+        services.AddSingleton<IStockRetrievalService, StockRetrievalService>();
         services.AddSingleton<IStockMovementService, StockMovementService>();
         services.AddSingleton<IUserService, UserService>();
         services.AddSingleton<IPosService, PosService>();

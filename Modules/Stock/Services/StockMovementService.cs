@@ -32,11 +32,13 @@ public sealed class StockMovementService : IStockMovementService
         int? origineId,
         string? note,
         int? createdByUserId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? stockLocationId = null)
     {
-        var depot = await _locations.GetOrCreateDefaultDepotAsync(db, cancellationToken);
+        var locationId = stockLocationId
+            ?? (await _locations.GetOrCreateDefaultDepotAsync(db, cancellationToken)).Id;
         await ApplyMovementAtLocationAsync(
-            db, produitId, type, quantite, depot.Id, origineType, origineId, note, createdByUserId, cancellationToken);
+            db, produitId, type, quantite, locationId, origineType, origineId, note, createdByUserId, cancellationToken);
     }
 
     public Task ResyncBonLivraisonStockAsync(
@@ -406,17 +408,17 @@ public sealed class StockMovementService : IStockMovementService
         if (fromId is null && toId is null)
             throw new ArgumentException("From and To cannot both be null.");
 
-        decimal? fromAvant = null, fromApres = null, toAvant = null, toApres = null;
+        decimal? fromApres = null, toApres = null;
 
         if (fromId is int fid)
         {
-            fromAvant = await StockBalanceQueries.GetBalanceAsync(db, produitId, fid, cancellationToken);
+            var fromAvant = await StockBalanceQueries.GetBalanceAsync(db, produitId, fid, cancellationToken);
             fromApres = fromAvant - quantite;
         }
 
         if (toId is int tid)
         {
-            toAvant = await StockBalanceQueries.GetBalanceAsync(db, produitId, tid, cancellationToken);
+            var toAvant = await StockBalanceQueries.GetBalanceAsync(db, produitId, tid, cancellationToken);
             toApres = toAvant + quantite;
         }
 
@@ -426,9 +428,7 @@ public sealed class StockMovementService : IStockMovementService
             FromLocationId = fromId,
             ToLocationId = toId,
             Quantite = quantite,
-            FromAvant = fromAvant,
             FromApres = fromApres,
-            ToAvant = toAvant,
             ToApres = toApres,
             OrigineType = origineType,
             OrigineId = origineId,

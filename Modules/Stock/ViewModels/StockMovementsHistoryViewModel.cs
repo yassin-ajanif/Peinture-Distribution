@@ -55,7 +55,6 @@ public partial class StockMovementsHistoryViewModel : BaseViewModel
     [ObservableProperty] private string _colFrom = string.Empty;
     [ObservableProperty] private string _colTo = string.Empty;
     [ObservableProperty] private string _colStockCurrent = string.Empty;
-    [ObservableProperty] private string _colBeforeQty = string.Empty;
     [ObservableProperty] private string _colQty = string.Empty;
     [ObservableProperty] private string _colDetail = string.Empty;
     [ObservableProperty] private string _wmMovementClientSearch = string.Empty;
@@ -81,7 +80,6 @@ public partial class StockMovementsHistoryViewModel : BaseViewModel
         ColFrom = _locale.T("Lbl_ColStockFrom");
         ColTo = _locale.T("Lbl_ColStockTo");
         ColStockCurrent = _locale.T("Lbl_ColStockCurrent");
-        ColBeforeQty = _locale.T("Lbl_ColBeforeQty");
         ColQty = _locale.T("Lbl_ColQty");
         ColDetail = _locale.T("Lbl_ColDetail");
         WmMovementClientSearch = _locale.T("Wm_SearchMovementClient");

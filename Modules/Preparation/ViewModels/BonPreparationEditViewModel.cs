@@ -11,6 +11,7 @@ using GestionCommerciale.Modules.Stock;
 using GestionCommerciale.Modules.Stock.Services;
 using GestionCommerciale.Modules.Preparation.Models;
 using GestionCommerciale.Modules.Preparation.Services;
+using GestionCommerciale.Modules.Stock.ViewModels;
 using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
@@ -586,6 +587,7 @@ public partial class BonPreparationEditViewModel : BaseViewModel
             StockLocations.Add(new StockLocationPickItem
             {
                 Id = loc.Id,
+                Nom = loc.Nom,
                 IsVirtual = loc.IsVirtual,
                 Label = $"{loc.Nom} ({kind})"
             });

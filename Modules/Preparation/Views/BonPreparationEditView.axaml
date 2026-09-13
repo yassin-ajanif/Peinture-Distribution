@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:GestionCommerciale.Modules.Preparation.ViewModels"
+             xmlns:stockVm="using:GestionCommerciale.Modules.Stock.ViewModels"
              xmlns:m="using:GestionCommerciale.Modules.Tiers.Models"
              xmlns:stock="using:GestionCommerciale.Modules.Stock.Models"
              x:Class="GestionCommerciale.Modules.Preparation.Views.BonPreparationEditView"
@@ -21,7 +22,7 @@
                   SelectedItem="{Binding SelectedStockLocation}"
                   IsEnabled="{Binding CanEditDraft}">
           <ComboBox.ItemTemplate>
-            <DataTemplate DataType="vm:StockLocationPickItem">
+            <DataTemplate DataType="stockVm:StockLocationPickItem">
               <TextBlock Text="{Binding Label}"/>
             </DataTemplate>
           </ComboBox.ItemTemplate>

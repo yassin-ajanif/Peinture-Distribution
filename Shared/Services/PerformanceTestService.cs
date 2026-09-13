@@ -432,7 +432,7 @@ public class PerformanceTestService
                 {
                     if (sb != null) await ExecAsync(conn, sb.ToString(), ct);
                     sb = new System.Text.StringBuilder();
-                    sb.Append("INSERT INTO MouvementsStock (Id,CreatedAt,UpdatedAt,ProduitId,FromLocationId,ToLocationId,Quantite,FromAvant,FromApres,ToAvant,ToApres,OrigineType,OrigineId,Note) VALUES ");
+                    sb.Append("INSERT INTO MouvementsStock (Id,CreatedAt,UpdatedAt,ProduitId,FromLocationId,ToLocationId,Quantite,FromApres,ToApres,OrigineType,OrigineId,Note) VALUES ");
                 }
                 else
                 {
@@ -442,7 +442,7 @@ public class PerformanceTestService
                 mouvementId++;
                 var note = $"BL-{blId}";
                 var fromApres = stockAvant - qty;
-                sb!.Append(CultureInfo.InvariantCulture, $"({mouvementId},'{now}','{now}',{prodId},1,NULL,{qty:F2},{stockAvant:F2},{fromApres:F2},NULL,NULL,'{BlOrigineType}',{blId},'{Escape(note)}')");
+                sb!.Append(CultureInfo.InvariantCulture, $"({mouvementId},'{now}','{now}',{prodId},1,NULL,{qty:F2},{fromApres:F2},NULL,'{BlOrigineType}',{blId},'{Escape(note)}')");
                 stockByProd[prodId] = fromApres;
                 count++;
             }

@@ -14,7 +14,8 @@ public interface IStockMovementService
         int? origineId,
         string? note,
         int? createdByUserId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        int? stockLocationId = null);
 
     Task ResyncBonLivraisonStockAsync(
         AppDbContext db,

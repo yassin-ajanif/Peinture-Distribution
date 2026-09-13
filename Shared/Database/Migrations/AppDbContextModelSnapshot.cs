@@ -1205,9 +1205,6 @@ namespace GestionCommerciale.Shared.Database.Migrations
                     b.Property<decimal?>("FromApres")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal?>("FromAvant")
-                        .HasColumnType("TEXT");
-
                     b.Property<int?>("FromLocationId")
                         .HasColumnType("INTEGER");
 
@@ -1229,9 +1226,6 @@ namespace GestionCommerciale.Shared.Database.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal?>("ToApres")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal?>("ToAvant")
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("ToLocationId")

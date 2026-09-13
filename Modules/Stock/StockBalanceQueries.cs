@@ -1,59 +1,30 @@
 using GestionCommerciale.Modules.Stock.Models;
+using GestionCommerciale.Modules.Stock.Services;
 using GestionCommerciale.Shared.Database;
-using Microsoft.EntityFrameworkCore;
 
 namespace GestionCommerciale.Modules.Stock;
 
+/// <summary>
+/// Compatibility helpers for call sites without DI. Prefer <see cref="IStockRetrievalService"/>.
+/// </summary>
 public static class StockBalanceQueries
 {
-    public static async Task<decimal> GetBalanceAsync(
+    private static readonly StockRetrievalService Retrieval = new();
+
+    public static Task<decimal> GetBalanceAsync(
         AppDbContext db,
         int produitId,
         int locationId,
         CancellationToken cancellationToken = default)
-    {
-        var latest = await db.MouvementsStock.AsNoTracking()
-            .Where(m => m.ProduitId == produitId
-                        && (m.FromLocationId == locationId || m.ToLocationId == locationId))
-            .OrderByDescending(m => m.CreatedAt)
-            .ThenByDescending(m => m.Id)
-            .Select(m => new { m.FromLocationId, m.FromApres, m.ToLocationId, m.ToApres })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (latest is null)
-            return 0m;
-
-        if (latest.ToLocationId == locationId)
-            return latest.ToApres ?? 0m;
-        if (latest.FromLocationId == locationId)
-            return latest.FromApres ?? 0m;
-        return 0m;
-    }
+        => Retrieval.GetStockAsync(db, produitId, locationId, cancellationToken);
 
     public static async Task<Dictionary<int, decimal>> GetTotalBalancesAsync(
         AppDbContext db,
         IEnumerable<int> produitIds,
         CancellationToken cancellationToken = default)
     {
-        var ids = produitIds.Distinct().ToList();
-        var result = ids.ToDictionary(id => id, _ => 0m);
-        if (ids.Count == 0)
-            return result;
-
-        var locationIds = await db.StockLocations.AsNoTracking()
-            .Where(l => l.Actif)
-            .Select(l => l.Id)
-            .ToListAsync(cancellationToken);
-
-        foreach (var produitId in ids)
-        {
-            decimal total = 0m;
-            foreach (var locationId in locationIds)
-                total += await GetBalanceAsync(db, produitId, locationId, cancellationToken);
-            result[produitId] = total;
-        }
-
-        return result;
+        var balances = await Retrieval.GetTotalStocksAsync(db, produitIds, cancellationToken);
+        return balances as Dictionary<int, decimal> ?? new Dictionary<int, decimal>(balances);
     }
 
     public static async Task HydrateStockActuelAsync(
