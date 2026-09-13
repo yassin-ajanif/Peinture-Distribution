@@ -41,6 +41,7 @@ public partial class App : Application
             try
             {
                 db = Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext();
+                ClearStaleEfMigrationsLock(db);
                 db.Database.Migrate();
                 EnsureSocieteMentionsLegalesColumn(db);
                 EnsureFactureEstPayeeColumn(db);
@@ -114,6 +115,22 @@ public partial class App : Application
         root.SetRoot(loggedIn
             ? Services.GetRequiredService<AppShellViewModel>()
             : Services.GetRequiredService<LoginViewModel>());
+    }
+
+    /// <summary>
+    /// EF Core 9 leaves a row in __EFMigrationsLock if Migrate crashes/hangs.
+    /// A stale lock makes the next Migrate wait forever (no UI).
+    /// </summary>
+    private static void ClearStaleEfMigrationsLock(AppDbContext db)
+    {
+        try
+        {
+            db.Database.ExecuteSqlRaw("DELETE FROM __EFMigrationsLock;");
+        }
+        catch (SqliteException)
+        {
+            // Table may not exist yet on brand-new DBs.
+        }
     }
 
     /// <summary>Ensures TrialStartedAt and LicenseKey columns exist on AppSettings for older DBs.</summary>

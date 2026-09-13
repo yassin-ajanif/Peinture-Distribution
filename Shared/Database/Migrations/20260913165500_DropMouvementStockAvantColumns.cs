@@ -12,27 +12,19 @@ public partial class DropMouvementStockAvantColumns : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropColumn(
-            name: "FromAvant",
-            table: "MouvementsStock");
-
-        migrationBuilder.DropColumn(
-            name: "ToAvant",
-            table: "MouvementsStock");
+        // EF's SQLite DropColumn rebuilds the whole table and can hang forever on this DB.
+        // Native DROP COLUMN is supported by SQLite 3.35+ (bundled with Microsoft.Data.Sqlite).
+        migrationBuilder.Sql("""
+            ALTER TABLE MouvementsStock DROP COLUMN FromAvant;
+            ALTER TABLE MouvementsStock DROP COLUMN ToAvant;
+            """);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.AddColumn<decimal>(
-            name: "FromAvant",
-            table: "MouvementsStock",
-            type: "TEXT",
-            nullable: true);
-
-        migrationBuilder.AddColumn<decimal>(
-            name: "ToAvant",
-            table: "MouvementsStock",
-            type: "TEXT",
-            nullable: true);
+        migrationBuilder.Sql("""
+            ALTER TABLE MouvementsStock ADD COLUMN FromAvant TEXT NULL;
+            ALTER TABLE MouvementsStock ADD COLUMN ToAvant TEXT NULL;
+            """);
     }
 }
