@@ -501,7 +501,7 @@ public partial class AvoirEditViewModel : BaseViewModel
     private async Task SaveAsync(CancellationToken cancellationToken)
     {
         if (!_session.CanAccessAvoir) return;
-        if (!Lignes.Any())
+        if (ClientId == 0 || !Lignes.Any())
         {
             await _dialog.ShowErrorAsync(_locale.T("Avoir_Title"), _locale.T("Avoir_ErrLines"), cancellationToken);
             return;

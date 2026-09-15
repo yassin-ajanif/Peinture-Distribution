@@ -374,7 +374,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
     [RelayCommand]
     private async Task SaveAsync(CancellationToken cancellationToken)
     {
-        if (!Lignes.Any())
+        if (FournisseurId == 0 || !Lignes.Any())
         {
             await _dialog.ShowErrorAsync(_locale.T("Avf_Title"), _locale.T("Avf_ErrLines"), cancellationToken);
             return;

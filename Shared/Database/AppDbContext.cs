@@ -149,6 +149,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Devis>(e =>
         {
             e.HasMany(d => d.Lignes).WithOne(l => l.Devis).HasForeignKey(l => l.DevisId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(d => d.ClientId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(d => d.ClientId);
         });
 
         modelBuilder.Entity<BonLivraison>(e =>
@@ -160,8 +162,10 @@ public class AppDbContext : DbContext
             e.HasOne<BonCommandeClient>().WithMany()
                 .HasForeignKey(b => b.BonCommandeClientId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(b => b.ClientId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(b => b.FactureId);
             e.HasIndex(b => b.BonCommandeClientId);
+            e.HasIndex(b => b.ClientId);
         });
 
         modelBuilder.Entity<BonCommandeClient>(e =>
@@ -170,12 +174,16 @@ public class AppDbContext : DbContext
             e.HasOne(b => b.Facture).WithMany()
                 .HasForeignKey(b => b.FactureId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(b => b.ClientId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(b => b.FactureId);
+            e.HasIndex(b => b.ClientId);
         });
 
         modelBuilder.Entity<BonCommande>(e =>
         {
             e.HasMany(b => b.Lignes).WithOne(l => l.BonCommande).HasForeignKey(l => l.BonCommandeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(b => b.FournisseurId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(b => b.FournisseurId);
         });
 
         modelBuilder.Entity<BonReception>(e =>
@@ -185,13 +193,17 @@ public class AppDbContext : DbContext
             e.HasOne<FactureFournisseur>().WithMany()
                 .HasForeignKey(b => b.FactureFournisseurId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(b => b.FournisseurId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(b => b.FactureFournisseurId);
+            e.HasIndex(b => b.FournisseurId);
         });
 
         modelBuilder.Entity<FactureFournisseur>(e =>
         {
             e.HasMany(f => f.Lignes).WithOne(l => l.FactureFournisseur).HasForeignKey(l => l.FactureFournisseurId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(f => f.Paiements).WithOne(p => p.FactureFournisseur).HasForeignKey(p => p.FactureFournisseurId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(f => f.FournisseurId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(f => f.FournisseurId);
         });
 
         modelBuilder.Entity<FactureFournisseurLigne>(e =>
@@ -206,6 +218,8 @@ public class AppDbContext : DbContext
         {
             e.HasMany(f => f.Lignes).WithOne(l => l.Facture).HasForeignKey(l => l.FactureId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(f => f.Paiements).WithOne(p => p.Facture).HasForeignKey(p => p.FactureId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(f => f.ClientId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(f => f.ClientId);
         });
 
         modelBuilder.Entity<BonPreparation>(e =>
@@ -215,8 +229,10 @@ public class AppDbContext : DbContext
             e.HasOne(f => f.StockLocation).WithMany()
                 .HasForeignKey(f => f.StockLocationId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(f => f.ClientId).OnDelete(DeleteBehavior.Restrict);
             e.Property(f => f.StockLocationId).HasDefaultValue(1);
             e.HasIndex(f => f.StockLocationId);
+            e.HasIndex(f => f.ClientId);
         });
 
         modelBuilder.Entity<FactureLigne>(e =>
@@ -246,11 +262,15 @@ public class AppDbContext : DbContext
         {
             e.HasOne(a => a.Facture).WithMany().HasForeignKey(a => a.FactureId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
             e.HasMany(a => a.Lignes).WithOne(l => l.Avoir).HasForeignKey(l => l.AvoirId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(a => a.ClientId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(a => a.ClientId);
         });
 
         modelBuilder.Entity<AvoirFournisseur>(e =>
         {
             e.HasMany(a => a.Lignes).WithOne(l => l.AvoirFournisseur).HasForeignKey(l => l.AvoirFournisseurId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Tiers>().WithMany().HasForeignKey(a => a.FournisseurId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(a => a.FournisseurId);
         });
 
         modelBuilder.Entity<TypeCharge>(e =>
