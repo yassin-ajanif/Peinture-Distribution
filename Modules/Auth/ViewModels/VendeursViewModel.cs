@@ -3,9 +3,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Models;
 using GestionCommerciale.Modules.Auth.Services;
+using GestionCommerciale.Modules.Stock.Services;
+using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
 using GestionCommerciale.Shared.ViewModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace GestionCommerciale.Modules.Auth.ViewModels;
 
@@ -14,12 +17,25 @@ public partial class VendeursViewModel : BaseViewModel
     private readonly IUserService _users;
     private readonly IDialogService _dialog;
     private readonly ILocaleService _locale;
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
+    private readonly IStockRetrievalService _stockRetrieval;
+    private readonly IAppSettingsService _settings;
+    private int _soldeLoadToken;
 
-    public VendeursViewModel(IUserService users, IDialogService dialog, ILocaleService locale)
+    public VendeursViewModel(
+        IUserService users,
+        IDialogService dialog,
+        ILocaleService locale,
+        IDbContextFactory<AppDbContext> dbFactory,
+        IStockRetrievalService stockRetrieval,
+        IAppSettingsService settings)
     {
         _users = users;
         _dialog = dialog;
         _locale = locale;
+        _dbFactory = dbFactory;
+        _stockRetrieval = stockRetrieval;
+        _settings = settings;
         _locale.CultureApplied += (_, _) => RefreshLabels();
         RefreshLabels();
         Pagination = new PaginationHelper(() => _ = LoadAsync(CancellationToken.None));
@@ -27,6 +43,7 @@ public partial class VendeursViewModel : BaseViewModel
 
     public PaginationHelper Pagination { get; }
     public ObservableCollection<User> Vendeurs { get; } = [];
+    public ObservableCollection<VendeurStockLineRow> StockLines { get; } = [];
 
     [ObservableProperty] private string _btnNew = string.Empty;
     [ObservableProperty] private string _btnSave = string.Empty;
@@ -41,6 +58,14 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private string _lblPhone = string.Empty;
     [ObservableProperty] private string _lblActif = string.Empty;
     [ObservableProperty] private string _helpList = string.Empty;
+    [ObservableProperty] private string _lblSolde = string.Empty;
+    [ObservableProperty] private string _lblQtyTotal = string.Empty;
+    [ObservableProperty] private string _lblValVenteTtc = string.Empty;
+    [ObservableProperty] private string _colRef = string.Empty;
+    [ObservableProperty] private string _colDesignation = string.Empty;
+    [ObservableProperty] private string _colQty = string.Empty;
+    [ObservableProperty] private string _colValVenteTtc = string.Empty;
+    [ObservableProperty] private string _emptyStock = string.Empty;
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private User? _selected;
@@ -49,8 +74,14 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private string _fichePhone = string.Empty;
     [ObservableProperty] private bool _ficheActif = true;
 
+    [ObservableProperty] private string _qtyTotalLabel = "0,00";
+    [ObservableProperty] private string _valVenteTtcLabel = "—";
+    [ObservableProperty] private bool _hasStockLines;
+
     public bool FicheEditable => Selected is not null || IsNewDraft;
     public bool CanDelete => Selected is not null && !IsNewDraft;
+    public bool ShowSolde => Selected is not null && !IsNewDraft;
+    public bool ShowFiche => Selected is not null || IsNewDraft;
 
     private void RefreshLabels()
     {
@@ -68,6 +99,14 @@ public partial class VendeursViewModel : BaseViewModel
         LblPhone = _locale.T("Lbl_Phone");
         LblActif = _locale.T("Lbl_Actif");
         HelpList = _locale.T("Lbl_VendeursHelp");
+        LblSolde = _locale.T("Lbl_VendeurSolde");
+        LblQtyTotal = _locale.T("Lbl_VendeurQtyTotal");
+        LblValVenteTtc = _locale.T("Reports_LblStockValVenteTtc");
+        ColRef = _locale.T("Lbl_ColRef");
+        ColDesignation = _locale.T("Lbl_ColDesignation");
+        ColQty = _locale.T("Lbl_ColQty");
+        ColValVenteTtc = _locale.T("Reports_LblStockValVenteTtc");
+        EmptyStock = _locale.T("Lbl_VendeurSoldeEmpty");
     }
 
     partial void OnSearchTextChanged(string value)
@@ -82,8 +121,7 @@ public partial class VendeursViewModel : BaseViewModel
         {
             if (!IsNewDraft)
                 ClearFiche();
-            OnPropertyChanged(nameof(FicheEditable));
-            OnPropertyChanged(nameof(CanDelete));
+            NotifyFicheState();
             return;
         }
 
@@ -91,14 +129,18 @@ public partial class VendeursViewModel : BaseViewModel
         FicheNom = value.FullName;
         FichePhone = value.Phone;
         FicheActif = value.Actif;
-        OnPropertyChanged(nameof(FicheEditable));
-        OnPropertyChanged(nameof(CanDelete));
+        NotifyFicheState();
+        _ = LoadSoldeAsync(value.Id, CancellationToken.None);
     }
 
-    partial void OnIsNewDraftChanged(bool value)
+    partial void OnIsNewDraftChanged(bool value) => NotifyFicheState();
+
+    private void NotifyFicheState()
     {
         OnPropertyChanged(nameof(FicheEditable));
         OnPropertyChanged(nameof(CanDelete));
+        OnPropertyChanged(nameof(ShowSolde));
+        OnPropertyChanged(nameof(ShowFiche));
     }
 
     [RelayCommand]
@@ -138,8 +180,8 @@ public partial class VendeursViewModel : BaseViewModel
         FicheNom = string.Empty;
         FichePhone = string.Empty;
         FicheActif = true;
-        OnPropertyChanged(nameof(FicheEditable));
-        OnPropertyChanged(nameof(CanDelete));
+        ClearSolde();
+        NotifyFicheState();
     }
 
     [RelayCommand]
@@ -203,5 +245,86 @@ public partial class VendeursViewModel : BaseViewModel
         FicheNom = string.Empty;
         FichePhone = string.Empty;
         FicheActif = true;
+        ClearSolde();
+        NotifyFicheState();
+    }
+
+    private void ClearSolde()
+    {
+        StockLines.Clear();
+        HasStockLines = false;
+        QtyTotalLabel = "0,00";
+        ValVenteTtcLabel = "—";
+    }
+
+    private async Task LoadSoldeAsync(int userId, CancellationToken cancellationToken)
+    {
+        var token = ++_soldeLoadToken;
+        ClearSolde();
+
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var locationId = await db.StockLocations.AsNoTracking()
+            .Where(l => l.IsVirtual && l.UserId == userId)
+            .Select(l => (int?)l.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (token != _soldeLoadToken)
+            return;
+
+        if (locationId is null)
+            return;
+
+        var produitIds = await db.MouvementsStock.AsNoTracking()
+            .Where(m => m.FromLocationId == locationId || m.ToLocationId == locationId)
+            .Select(m => m.ProduitId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (token != _soldeLoadToken)
+            return;
+
+        if (produitIds.Count == 0)
+            return;
+
+        var cfg = await _settings.GetAsync(cancellationToken);
+        var devise = CurrencyHelper.FromSettings(cfg);
+        var currency = string.IsNullOrEmpty(devise) ? "MAD" : devise;
+
+        var products = await db.Produits.AsNoTracking()
+            .Where(p => produitIds.Contains(p.Id))
+            .Select(p => new { p.Id, p.Reference, p.Designation, p.PrixVenteHT, p.TauxTVA })
+            .ToListAsync(cancellationToken);
+
+        var stocks = await _stockRetrieval.GetStocksAsync(db, produitIds, locationId.Value, cancellationToken);
+
+        if (token != _soldeLoadToken)
+            return;
+
+        decimal qtyTotal = 0m;
+        decimal valVenteTtc = 0m;
+
+        foreach (var p in products.OrderBy(x => x.Reference))
+        {
+            var qty = stocks.GetValueOrDefault(p.Id);
+            if (qty <= 0m)
+                continue;
+
+            var venteTtc = qty * p.PrixVenteHT * (1m + p.TauxTVA / 100m);
+            qtyTotal += qty;
+            valVenteTtc += venteTtc;
+
+            StockLines.Add(new VendeurStockLineRow
+            {
+                Reference = p.Reference,
+                Designation = p.Designation,
+                Quantite = qty,
+                ValeurVenteTtc = venteTtc,
+                ValeurVenteTtcLabel = CurrencyHelper.Format(venteTtc, currency)
+            });
+        }
+
+        HasStockLines = StockLines.Count > 0;
+        QtyTotalLabel = qtyTotal.ToString("N2");
+        ValVenteTtcLabel = CurrencyHelper.Format(valVenteTtc, currency);
     }
 }

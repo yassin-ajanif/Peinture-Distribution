@@ -51,32 +51,97 @@
     </Border>
 
     <Border Grid.Column="1" Margin="16,0,0,0" Padding="12" CornerRadius="8"
-            BorderBrush="#28000000" BorderThickness="1" Background="#06000000">
-      <StackPanel Spacing="12" MaxWidth="420">
-        <StackPanel Spacing="2">
-          <TextBlock Text="{Binding LblFiche}" FontSize="15" FontWeight="SemiBold"/>
-          <TextBlock Text="{Binding LblDraftHint}" FontSize="12" Opacity="0.8" TextWrapping="Wrap"
-                     IsVisible="{Binding IsNewDraft}"/>
+            BorderBrush="#28000000" BorderThickness="1" Background="#06000000"
+            IsVisible="{Binding ShowFiche}">
+      <Grid RowDefinitions="Auto,*,Auto">
+        <StackPanel Spacing="12">
+          <StackPanel Spacing="2">
+            <TextBlock Text="{Binding LblFiche}" FontSize="15" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding LblDraftHint}" FontSize="12" Opacity="0.8" TextWrapping="Wrap"
+                       IsVisible="{Binding IsNewDraft}"/>
+          </StackPanel>
+
+          <Grid ColumnDefinitions="*,12,*,12,Auto">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding LblNom}" FontWeight="SemiBold" FontSize="12"/>
+              <TextBox Text="{Binding FicheNom}" IsEnabled="{Binding FicheEditable}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="4">
+              <TextBlock Text="{Binding LblPhone}" FontWeight="SemiBold" FontSize="12"/>
+              <TextBox Text="{Binding FichePhone}" IsEnabled="{Binding FicheEditable}"/>
+            </StackPanel>
+            <CheckBox Grid.Column="4" Content="{Binding LblActif}" IsChecked="{Binding FicheActif}"
+                      IsEnabled="{Binding FicheEditable}" VerticalAlignment="Bottom" Margin="0,0,0,6"/>
+          </Grid>
         </StackPanel>
 
-        <StackPanel Spacing="4">
-          <TextBlock Text="{Binding LblNom}" FontWeight="SemiBold" FontSize="12"/>
-          <TextBox Text="{Binding FicheNom}" IsEnabled="{Binding FicheEditable}"/>
-        </StackPanel>
-        <StackPanel Spacing="4">
-          <TextBlock Text="{Binding LblPhone}" FontWeight="SemiBold" FontSize="12"/>
-          <TextBox Text="{Binding FichePhone}" IsEnabled="{Binding FicheEditable}"/>
-        </StackPanel>
-        <CheckBox Content="{Binding LblActif}" IsChecked="{Binding FicheActif}"
-                  IsEnabled="{Binding FicheEditable}"/>
+        <Border Grid.Row="1" Margin="0,16,0,0" Padding="12" CornerRadius="8"
+                BorderBrush="#28000000" BorderThickness="1" Background="#08000000"
+                IsVisible="{Binding ShowSolde}">
+          <Grid RowDefinitions="Auto,Auto,*">
+            <TextBlock Text="{Binding LblSolde}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
 
-        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+            <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,0,0,12">
+              <Border Background="#E0F2FE" CornerRadius="8" Padding="10,8" Margin="0,0,6,0">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding LblQtyTotal}" FontSize="11" Foreground="#0369A1"/>
+                  <TextBlock Text="{Binding QtyTotalLabel}" FontSize="15" FontWeight="Bold" Foreground="#0C4A6E"/>
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="1" Background="#D1FAE5" CornerRadius="8" Padding="10,8">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding LblValVenteTtc}" FontSize="11" Foreground="#047857"/>
+                  <TextBlock Text="{Binding ValVenteTtcLabel}" FontSize="15" FontWeight="Bold" Foreground="#065F46"/>
+                </StackPanel>
+              </Border>
+            </Grid>
+
+            <Grid Grid.Row="2" RowDefinitions="Auto,*">
+              <TextBlock Text="{Binding EmptyStock}" FontSize="12" Opacity="0.7"
+                         IsVisible="{Binding !HasStockLines}" Margin="0,4,0,0"/>
+
+              <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasStockLines}">
+                <Border Background="#12000000" CornerRadius="4,4,0,0" Padding="10,8"
+                        BorderBrush="#20000000" BorderThickness="0,0,0,1">
+                  <Grid ColumnDefinitions="110,*,80,140">
+                    <TextBlock Text="{Binding ColRef}" FontWeight="SemiBold" FontSize="11"/>
+                    <TextBlock Grid.Column="1" Text="{Binding ColDesignation}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
+                    <TextBlock Grid.Column="2" Text="{Binding ColQty}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Foreground="#0369A1"/>
+                    <TextBlock Grid.Column="3" Text="{Binding ColValVenteTtc}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0" Foreground="#047857"/>
+                  </Grid>
+                </Border>
+                <ListBox Grid.Row="1" ItemsSource="{Binding StockLines}" BorderThickness="0" Background="Transparent">
+                  <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                      <Setter Property="Padding" Value="10,6"/>
+                    </Style>
+                  </ListBox.Styles>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate DataType="vm:VendeurStockLineRow">
+                      <Grid ColumnDefinitions="110,*,80,140">
+                        <TextBlock Text="{Binding Reference}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Designation}" FontSize="11" Margin="8,0,0,0"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="2" Text="{Binding QuantiteLabel}" FontSize="11" TextAlignment="Right"
+                                   FontWeight="SemiBold" Foreground="#0369A1"/>
+                        <TextBlock Grid.Column="3" Text="{Binding ValeurVenteTtcLabel}" FontSize="11" TextAlignment="Right"
+                                   Margin="8,0,0,0" FontWeight="SemiBold" Foreground="#065F46"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
           <Button Content="{Binding BtnSave}" Command="{Binding SaveCommand}"
                   IsEnabled="{Binding FicheEditable}" MinWidth="120"/>
           <Button Content="{Binding BtnDelete}" Command="{Binding DeleteCommand}"
                   IsEnabled="{Binding CanDelete}" Classes="pos-delete" MinWidth="120"/>
         </StackPanel>
-      </StackPanel>
+      </Grid>
     </Border>
   </Grid>
 </UserControl>
