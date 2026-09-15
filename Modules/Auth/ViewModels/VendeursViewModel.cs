@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Models;
 using GestionCommerciale.Modules.Auth.Services;
+using GestionCommerciale.Modules.Stock.Models;
 using GestionCommerciale.Modules.Stock.Services;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
@@ -78,10 +79,11 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private string _valVenteTtcLabel = "—";
     [ObservableProperty] private bool _hasStockLines;
 
-    public bool FicheEditable => Selected is not null || IsNewDraft;
-    public bool CanDelete => Selected is not null && !IsNewDraft;
+    public bool FicheEditable => (Selected is not null || IsNewDraft) && !IsDepotPrincipalSelected;
+    public bool CanDelete => Selected is not null && !IsNewDraft && !IsDepotPrincipalSelected;
     public bool ShowSolde => Selected is not null && !IsNewDraft;
     public bool ShowFiche => Selected is not null || IsNewDraft;
+    public bool IsDepotPrincipalSelected => DbSeeder.IsDepotPrincipalAdmin(Selected);
 
     private void RefreshLabels()
     {
@@ -141,6 +143,7 @@ public partial class VendeursViewModel : BaseViewModel
         OnPropertyChanged(nameof(CanDelete));
         OnPropertyChanged(nameof(ShowSolde));
         OnPropertyChanged(nameof(ShowFiche));
+        OnPropertyChanged(nameof(IsDepotPrincipalSelected));
     }
 
     [RelayCommand]
@@ -263,10 +266,31 @@ public partial class VendeursViewModel : BaseViewModel
         ClearSolde();
 
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var locationId = await db.StockLocations.AsNoTracking()
-            .Where(l => l.IsVirtual && l.UserId == userId)
-            .Select(l => (int?)l.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+
+        var user = await db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null)
+            return;
+
+        int? locationId;
+        if (DbSeeder.IsDepotPrincipalAdmin(user))
+        {
+            locationId = await db.StockLocations.AsNoTracking()
+                .Where(l => !l.IsVirtual && l.Nom == StockLocation.DefaultDepotNom)
+                .Select(l => (int?)l.Id)
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? await db.StockLocations.AsNoTracking()
+                    .Where(l => !l.IsVirtual && l.Actif)
+                    .Select(l => (int?)l.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+        }
+        else
+        {
+            locationId = await db.StockLocations.AsNoTracking()
+                .Where(l => l.IsVirtual && l.UserId == userId)
+                .Select(l => (int?)l.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
 
         if (token != _soldeLoadToken)
             return;

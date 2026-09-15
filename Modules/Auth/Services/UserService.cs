@@ -31,8 +31,9 @@ public sealed class UserService : IUserService
         CancellationToken cancellationToken = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var depotPhone = DbSeeder.DepotPrincipalAdminPhone;
         var q = db.Users.AsNoTracking()
-            .Where(u => u.UserType == UserType.Vendeur);
+            .Where(u => u.UserType == UserType.Vendeur || u.Phone == depotPhone);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -43,7 +44,8 @@ public sealed class UserService : IUserService
         }
 
         return await q
-            .OrderBy(u => u.FullName)
+            .OrderBy(u => u.Phone == depotPhone ? 0 : 1)
+            .ThenBy(u => u.FullName)
             .ThenBy(u => u.Phone)
             .ToListAsync(cancellationToken);
     }
@@ -51,8 +53,11 @@ public sealed class UserService : IUserService
     public async Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var depotPhone = DbSeeder.DepotPrincipalAdminPhone;
         return await db.Users.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == id && u.UserType == UserType.Vendeur, cancellationToken);
+            .FirstOrDefaultAsync(
+                u => u.Id == id && (u.UserType == UserType.Vendeur || u.Phone == depotPhone),
+                cancellationToken);
     }
 
     public async Task<User> CreateVendeurAsync(
@@ -63,6 +68,9 @@ public sealed class UserService : IUserService
     {
         var phoneTrim = RequirePhone(phone);
         var nameTrim = RequireName(fullName);
+
+        if (DbSeeder.IsDepotPrincipalAdminPhone(phoneTrim))
+            throw new InvalidOperationException("Ce numéro est réservé au dépôt principal.");
 
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
 
@@ -95,8 +103,17 @@ public sealed class UserService : IUserService
         var nameTrim = RequireName(fullName);
 
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id && u.UserType == UserType.Vendeur, cancellationToken)
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException("Vendeur introuvable.");
+
+        if (DbSeeder.IsDepotPrincipalAdmin(user))
+            throw new InvalidOperationException("Le dépôt principal ne peut pas être modifié.");
+
+        if (user.UserType != UserType.Vendeur)
+            throw new KeyNotFoundException("Vendeur introuvable.");
+
+        if (DbSeeder.IsDepotPrincipalAdminPhone(phoneTrim))
+            throw new InvalidOperationException("Ce numéro est réservé au dépôt principal.");
 
         if (await db.Users.AnyAsync(u => u.Phone == phoneTrim && u.Id != id, cancellationToken))
             throw new InvalidOperationException("Ce numéro est déjà utilisé.");
@@ -123,8 +140,14 @@ public sealed class UserService : IUserService
     public async Task DeleteVendeurAsync(int id, CancellationToken cancellationToken = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id && u.UserType == UserType.Vendeur, cancellationToken)
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException("Vendeur introuvable.");
+
+        if (DbSeeder.IsDepotPrincipalAdmin(user))
+            throw new InvalidOperationException("Le dépôt principal ne peut pas être supprimé.");
+
+        if (user.UserType != UserType.Vendeur)
+            throw new KeyNotFoundException("Vendeur introuvable.");
 
         var virtualStock = await db.StockLocations
             .FirstOrDefaultAsync(l => l.IsVirtual && l.UserId == id, cancellationToken);

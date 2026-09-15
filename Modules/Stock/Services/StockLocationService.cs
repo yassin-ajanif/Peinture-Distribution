@@ -47,6 +47,10 @@ public sealed class StockLocationService : IStockLocationService
         User user,
         CancellationToken cancellationToken = default)
     {
+        // Depot principal admin is tied to the physical dépôt — never create a virtual stock.
+        if (DbSeeder.IsDepotPrincipalAdmin(user))
+            return await GetOrCreateDefaultDepotAsync(db, cancellationToken);
+
         var existing = await db.StockLocations
             .FirstOrDefaultAsync(l => l.IsVirtual && l.UserId == user.Id, cancellationToken);
 
