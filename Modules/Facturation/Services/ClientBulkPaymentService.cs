@@ -1,5 +1,5 @@
 using GestionCommerciale.Modules.Facturation.Models;
-using GestionCommerciale.Modules.Preparation.Models;
+using GestionCommerciale.Modules.Livraison.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -72,27 +72,27 @@ public sealed class ClientBulkPaymentService : IClientBulkPaymentService
                 }
                 else
                 {
-                    var bp = await db.BonsPreparation
+                    var bl = await db.BonsLivraison
                         .Include(b => b.Paiements)
                         .Include(b => b.Lignes)
                         .FirstAsync(b => b.Id == line.DocumentId && b.ClientId == request.ClientId, cancellationToken);
 
-                    DocumentTotalsHelper.SyncBonPreparationTotalTtc(bp);
-                    var paidBefore = bp.Paiements.Sum(p => p.Montant);
+                    DocumentTotalsHelper.SyncBonLivraisonTotalTtc(bl);
+                    var paidBefore = bl.Paiements.Sum(p => p.Montant);
                     var totalAfter = paidBefore + line.Amount;
-                    DocumentTotalsHelper.EnsurePaymentsNotOverTtc(bp.TotalTtc, totalAfter);
+                    DocumentTotalsHelper.EnsurePaymentsNotOverTtc(bl.TotalTtc, totalAfter);
 
-                    db.PaiementsBonPreparation.Add(new PaiementBonPreparation
+                    db.PaiementsBonLivraison.Add(new PaiementBonLivraison
                     {
-                        BonPreparationId = bp.Id,
+                        BonLivraisonId = bl.Id,
                         Montant = line.Amount,
                         Date = date,
                         Mode = request.Mode,
                         Reference = reference
                     });
 
-                    if (IsFullyPaid(bp.TotalTtc, totalAfter))
-                        bp.EstPayee = true;
+                    if (IsFullyPaid(bl.TotalTtc, totalAfter))
+                        bl.EstPayee = true;
                 }
             }
 
@@ -116,7 +116,7 @@ public sealed class ClientBulkPaymentService : IClientBulkPaymentService
             .Include(f => f.Paiements)
             .Include(f => f.Lignes)
             .Where(f => f.ClientId == clientId);
-        IQueryable<BonPreparation> bpsQ = db.BonsPreparation
+        IQueryable<BonLivraison> blsQ = db.BonsLivraison
             .Include(b => b.Paiements)
             .Include(b => b.Lignes)
             .Where(b => b.ClientId == clientId);
@@ -124,11 +124,11 @@ public sealed class ClientBulkPaymentService : IClientBulkPaymentService
         if (!track)
         {
             facturesQ = facturesQ.AsNoTracking();
-            bpsQ = bpsQ.AsNoTracking();
+            blsQ = blsQ.AsNoTracking();
         }
 
         var factures = await facturesQ.ToListAsync(cancellationToken);
-        var bps = await bpsQ.ToListAsync(cancellationToken);
+        var bls = await blsQ.ToListAsync(cancellationToken);
 
         var result = new List<BulkPayableDocument>();
 
@@ -150,16 +150,16 @@ public sealed class ClientBulkPaymentService : IClientBulkPaymentService
                 remaining));
         }
 
-        foreach (var b in bps)
+        foreach (var b in bls)
         {
-            DocumentTotalsHelper.SyncBonPreparationTotalTtc(b);
+            DocumentTotalsHelper.SyncBonLivraisonTotalTtc(b);
             var paid = b.Paiements.Sum(p => p.Montant);
             var remaining = Math.Round(b.TotalTtc - paid, 2, MidpointRounding.AwayFromZero);
             if (remaining <= DocumentTotalsHelper.PaiementTtcTolerance)
                 continue;
 
             result.Add(new BulkPayableDocument(
-                BulkPayableDocumentKind.BonPreparation,
+                BulkPayableDocumentKind.BonLivraison,
                 b.Id,
                 b.Numero,
                 b.Date.Date,

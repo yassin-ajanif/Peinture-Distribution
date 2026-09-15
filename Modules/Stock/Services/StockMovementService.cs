@@ -8,7 +8,6 @@ namespace GestionCommerciale.Modules.Stock.Services;
 public sealed class StockMovementService : IStockMovementService
 {
     public const string OrigineTypeBonLivraison = "BL";
-    public const string OrigineTypeBonPreparation = "BP";
     public const string OrigineTypeBonReception = "BR";
     public const string OrigineTypeAvoir = "Avoir";
     public const string OrigineTypeAvoirFournisseur = "AvoirFournisseur";
@@ -63,41 +62,6 @@ public sealed class StockMovementService : IStockMovementService
             noteDetail,
             desired,
             stockLocationId: null,
-            createdByUserId,
-            useModificationNoteOnEdit: true,
-            onPositiveEntreeDelta: null,
-            cancellationToken);
-    }
-
-    public async Task ResyncBonPreparationStockAsync(
-        AppDbContext db,
-        int bonPreparationId,
-        string noteDetail,
-        IEnumerable<(int ProduitId, decimal Quantite)> lines,
-        int stockLocationId,
-        int? createdByUserId,
-        CancellationToken cancellationToken = default)
-    {
-        var location = await db.StockLocations.FirstOrDefaultAsync(l => l.Id == stockLocationId, cancellationToken)
-            ?? throw new InvalidOperationException("Emplacement de stock introuvable.");
-        if (!location.Actif)
-            throw new InvalidOperationException("Emplacement de stock inactif.");
-
-        await NeutralizeMovementsNotOnLocationAsync(
-            db, OrigineTypeBonPreparation, bonPreparationId, stockLocationId, createdByUserId, cancellationToken);
-
-        var desired = lines
-            .Where(l => l.ProduitId > 0 && l.Quantite > 0)
-            .GroupBy(l => l.ProduitId)
-            .ToDictionary(g => g.Key, g => -g.Sum(l => l.Quantite));
-
-        await SyncDocumentStockAsync(
-            db,
-            OrigineTypeBonPreparation,
-            bonPreparationId,
-            noteDetail,
-            desired,
-            stockLocationId,
             createdByUserId,
             useModificationNoteOnEdit: true,
             onPositiveEntreeDelta: null,

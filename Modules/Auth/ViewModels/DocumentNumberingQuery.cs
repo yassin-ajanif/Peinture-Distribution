@@ -10,7 +10,6 @@ internal static class DocumentNumberingQuery
         {
             "DEV" => db.Devis.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken),
             "BL" => db.BonsLivraison.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken),
-            "BP" => db.BonsPreparation.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken),
             "BCH" => db.BonsCharge.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken),
             "BDH" => db.BonsDecharge.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken),
             "BR" => db.BonsReception.AsNoTracking().Select(d => d.Numero).ToListAsync(cancellationToken),

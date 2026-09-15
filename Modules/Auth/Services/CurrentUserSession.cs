@@ -14,8 +14,7 @@ public sealed class CurrentUserSession : ICurrentUserSession
     public bool CanAccessFournisseurs => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Magasinier;
     public bool CanAccessStock => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Magasinier;
     public bool CanAccessDevis => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Commercial;
-    public bool CanAccessBL => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Commercial or Models.Role.Magasinier;
-    public bool CanAccessPreparation => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Commercial or Models.Role.Magasinier or Models.Role.Comptable;
+    public bool CanAccessBL => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Commercial or Models.Role.Magasinier or Models.Role.Comptable;
     public bool CanAccessBR => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Magasinier;
     public bool CanAccessBC => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Magasinier;
     public bool CanAccessFacturation => IsAuthenticated && Role is Models.Role.Admin or Models.Role.Comptable;

@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.AvoirFournisseur.ViewModels;
 using GestionCommerciale.Modules.Facturation.ViewModels;
 using GestionCommerciale.Modules.Livraison.ViewModels;
-using GestionCommerciale.Modules.Preparation.ViewModels;
 using GestionCommerciale.Modules.Reception.ViewModels;
 using GestionCommerciale.Modules.Stock.Models;
 using GestionCommerciale.Modules.Stock.Services;
@@ -135,13 +134,6 @@ public partial class StockMovementsHistoryViewModel : BaseViewModel
             case StockMovementService.OrigineTypeBonLivraison:
             {
                 var vm = _sp.GetRequiredService<BLEditViewModel>();
-                vm.Load(id);
-                _workspace.Open(vm);
-                break;
-            }
-            case StockMovementService.OrigineTypeBonPreparation:
-            {
-                var vm = _sp.GetRequiredService<BonPreparationEditViewModel>();
                 vm.Load(id);
                 _workspace.Open(vm);
                 break;

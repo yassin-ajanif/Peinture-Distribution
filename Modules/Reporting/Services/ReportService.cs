@@ -491,8 +491,8 @@ public sealed class ReportService : IReportService
             })
             .ToListAsync(ct);
 
-        var bonsPreparation = await db.BonsPreparation.AsNoTracking()
-            .Where(b => b.Date >= from && b.Date < toEnd)
+        var bonsLivraison = await db.BonsLivraison.AsNoTracking()
+            .Where(b => b.Date >= from && b.Date < toEnd && b.FactureId == null)
             .Select(b => new
             {
                 b.Numero,
@@ -501,7 +501,7 @@ public sealed class ReportService : IReportService
                 Lignes = b.Lignes!.Select(l => new
                 {
                     l.ProduitId,
-                    l.Quantite,
+                    Quantite = l.QuantiteLivree,
                     l.PrixUnitaireHT,
                     l.Remise,
                     l.TauxTVA
@@ -527,7 +527,7 @@ public sealed class ReportService : IReportService
             .ToListAsync(ct);
 
         var allProdIds = factures.SelectMany(f => f.Lignes).Select(l => l.ProduitId)
-            .Concat(bonsPreparation.SelectMany(b => b.Lignes).Select(l => l.ProduitId))
+            .Concat(bonsLivraison.SelectMany(b => b.Lignes).Select(l => l.ProduitId))
             .Concat(avoirsClient.SelectMany(a => a.Lignes).Select(l => l.ProduitId))
             .Distinct()
             .ToList();
@@ -568,7 +568,7 @@ public sealed class ReportService : IReportService
                 profit >= 0));
         }
 
-        foreach (var b in bonsPreparation)
+        foreach (var b in bonsLivraison)
         {
             var factor = 1 - b.RemiseGlobale / 100m;
             decimal ht = 0, ttc = 0, costHt = 0;

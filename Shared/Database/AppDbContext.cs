@@ -8,7 +8,6 @@ using GestionCommerciale.Modules.CommandeFournisseur.Models;
 using GestionCommerciale.Modules.CommandeClient.Models;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
 using GestionCommerciale.Modules.Personnel.Models;
-using GestionCommerciale.Modules.Preparation.Models;
 using GestionCommerciale.Modules.Reception.Models;
 using GestionCommerciale.Modules.Stock.Models;
 using GestionCommerciale.Modules.Tiers.Models;
@@ -30,6 +29,7 @@ public class AppDbContext : DbContext
     public DbSet<DevisLigne> DevisLignes => Set<DevisLigne>();
     public DbSet<BonLivraison> BonsLivraison => Set<BonLivraison>();
     public DbSet<BonLivraisonLigne> BonLivraisonLignes => Set<BonLivraisonLigne>();
+    public DbSet<PaiementBonLivraison> PaiementsBonLivraison => Set<PaiementBonLivraison>();
     public DbSet<BonCommande> BonsCommande => Set<BonCommande>();
     public DbSet<BonCommandeLigne> BonCommandeLignes => Set<BonCommandeLigne>();
     public DbSet<BonCommandeClient> BonsCommandeClient => Set<BonCommandeClient>();
@@ -42,9 +42,6 @@ public class AppDbContext : DbContext
     public DbSet<Facture> Factures => Set<Facture>();
     public DbSet<FactureLigne> FactureLignes => Set<FactureLigne>();
     public DbSet<Paiement> Paiements => Set<Paiement>();
-    public DbSet<BonPreparation> BonsPreparation => Set<BonPreparation>();
-    public DbSet<BonPreparationLigne> BonPreparationLignes => Set<BonPreparationLigne>();
-    public DbSet<PaiementBonPreparation> PaiementsBonPreparation => Set<PaiementBonPreparation>();
     public DbSet<Avoir> Avoirs => Set<Avoir>();
     public DbSet<AvoirLigne> AvoirLignes => Set<AvoirLigne>();
     public DbSet<AvoirFournisseur> AvoirsFournisseurs => Set<AvoirFournisseur>();
@@ -148,6 +145,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<BonLivraison>(e =>
         {
             e.HasMany(b => b.Lignes).WithOne(l => l.BonLivraison).HasForeignKey(l => l.BLId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(b => b.Paiements).WithOne(p => p.BonLivraison).HasForeignKey(p => p.BonLivraisonId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(b => b.Facture).WithMany()
                 .HasForeignKey(b => b.FactureId)
                 .OnDelete(DeleteBehavior.SetNull);
@@ -158,6 +156,11 @@ public class AppDbContext : DbContext
             e.HasIndex(b => b.FactureId);
             e.HasIndex(b => b.BonCommandeClientId);
             e.HasIndex(b => b.ClientId);
+        });
+
+        modelBuilder.Entity<PaiementBonLivraison>(e =>
+        {
+            e.Property(p => p.Mode).HasConversion<int>();
         });
 
         modelBuilder.Entity<BonCommandeClient>(e =>
@@ -214,19 +217,6 @@ public class AppDbContext : DbContext
             e.HasIndex(f => f.ClientId);
         });
 
-        modelBuilder.Entity<BonPreparation>(e =>
-        {
-            e.HasMany(f => f.Lignes).WithOne(l => l.BonPreparation).HasForeignKey(l => l.BonPreparationId).OnDelete(DeleteBehavior.Cascade);
-            e.HasMany(f => f.Paiements).WithOne(p => p.BonPreparation).HasForeignKey(p => p.BonPreparationId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(f => f.StockLocation).WithMany()
-                .HasForeignKey(f => f.StockLocationId)
-                .OnDelete(DeleteBehavior.Restrict);
-            e.HasOne<Tiers>().WithMany().HasForeignKey(f => f.ClientId).OnDelete(DeleteBehavior.Restrict);
-            e.Property(f => f.StockLocationId).HasDefaultValue(1);
-            e.HasIndex(f => f.StockLocationId);
-            e.HasIndex(f => f.ClientId);
-        });
-
         modelBuilder.Entity<FactureLigne>(e =>
         {
             e.HasOne(l => l.BonLivraison).WithMany()
@@ -236,11 +226,6 @@ public class AppDbContext : DbContext
         });
 
         modelBuilder.Entity<Paiement>(e =>
-        {
-            e.Property(p => p.Mode).HasConversion<int>();
-        });
-
-        modelBuilder.Entity<PaiementBonPreparation>(e =>
         {
             e.Property(p => p.Mode).HasConversion<int>();
         });

@@ -1,4 +1,5 @@
 using GestionCommerciale.Modules.Facturation.Models;
+using GestionCommerciale.Modules.Livraison.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
@@ -58,24 +59,7 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
             })
             .ToListAsync(cancellationToken);
 
-        var entries = new List<(DateTime Date, ClientAccountEntryKind Kind, long TieBreakId, string Designation, string Observation, decimal Debit, decimal Credit)>();
-
-        foreach (var f in factures)
-        {
-            var ttc = f.TotalTtc;
-            if (ttc <= 0) continue;
-
-            entries.Add((
-                f.Date.Date,
-                ClientAccountEntryKind.Facture,
-                f.Id,
-                _locale.Tf("ClientLedger_FactureFmt", f.Numero),
-                string.Empty,
-                ttc,
-                0));
-        }
-
-        var bonsPreparation = await db.BonsPreparation.AsNoTracking()
+        var bonsLivraison = await db.BonsLivraison.AsNoTracking()
             .Where(b => b.ClientId == clientId)
             .Select(b => new
             {
@@ -94,16 +78,33 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
             })
             .ToListAsync(cancellationToken);
 
-        foreach (var b in bonsPreparation)
+        var entries = new List<(DateTime Date, ClientAccountEntryKind Kind, long TieBreakId, string Designation, string Observation, decimal Debit, decimal Credit)>();
+
+        foreach (var f in factures)
+        {
+            var ttc = f.TotalTtc;
+            if (ttc <= 0) continue;
+
+            entries.Add((
+                f.Date.Date,
+                ClientAccountEntryKind.Facture,
+                f.Id,
+                _locale.Tf("ClientLedger_FactureFmt", f.Numero),
+                string.Empty,
+                ttc,
+                0));
+        }
+
+        foreach (var b in bonsLivraison)
         {
             var ttc = b.TotalTtc;
             if (ttc <= 0) continue;
 
             entries.Add((
                 b.Date.Date,
-                ClientAccountEntryKind.BonPreparation,
+                ClientAccountEntryKind.BonLivraison,
                 b.Id,
-                _locale.Tf("ClientLedger_BonPreparationFmt", b.Numero),
+                _locale.Tf("ClientLedger_BonLivraisonFmt", b.Numero),
                 string.Empty,
                 ttc,
                 0));
@@ -149,7 +150,7 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
             }
         }
 
-        foreach (var b in bonsPreparation)
+        foreach (var b in bonsLivraison)
         {
             foreach (var p in b.Paiements)
             {
@@ -198,14 +199,13 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
     }
 
     private string PaymentDesignation(ModePaiement mode) =>
-        _locale.T(mode switch
+        mode switch
         {
-            ModePaiement.Virement => "ClientLedger_PayVirement",
-            ModePaiement.Cheque => "ClientLedger_PayCheque",
-            ModePaiement.Especes => "ClientLedger_PayEspeces",
-            ModePaiement.TPE => "ClientLedger_PayTpe",
-            ModePaiement.Effet => "ClientLedger_PayEffet",
-            ModePaiement.Credit => "ClientLedger_PayCredit",
-            _ => "ClientLedger_PayReceived"
-        });
+            ModePaiement.Especes => _locale.T("ModePaiement_Especes"),
+            ModePaiement.Cheque => _locale.T("ModePaiement_Cheque"),
+            ModePaiement.TPE => _locale.T("ModePaiement_TPE"),
+            ModePaiement.Virement => _locale.T("ModePaiement_Virement"),
+            ModePaiement.Effet => _locale.T("ModePaiement_Effet"),
+            _ => _locale.T("ModePaiement_Credit")
+        };
 }

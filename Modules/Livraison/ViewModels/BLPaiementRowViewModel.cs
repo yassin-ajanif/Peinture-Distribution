@@ -2,13 +2,13 @@ using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Facturation.Models;
-using GestionCommerciale.Modules.Preparation.Models;
+using GestionCommerciale.Modules.Livraison.Models;
 
-namespace GestionCommerciale.Modules.Preparation.ViewModels;
+namespace GestionCommerciale.Modules.Livraison.ViewModels;
 
-public partial class BonPreparationPaiementRowViewModel : ObservableObject
+public partial class BLPaiementRowViewModel : ObservableObject
 {
-    private readonly BonPreparationEditViewModel _owner;
+    private readonly BLEditViewModel _owner;
 
     private decimal _snapshotMontant;
     private DateTimeOffset _snapshotDate;
@@ -17,8 +17,8 @@ public partial class BonPreparationPaiementRowViewModel : ObservableObject
 
     public int Id { get; }
 
-    /// <summary>Whether the parent facture allows edits (e.g. not annulée).</summary>
-    public bool BonPreparationModifiable => _owner.CanEditDraft;
+    /// <summary>Whether the parent BL allows edits.</summary>
+    public bool BlModifiable => _owner.CanEdit;
 
     [ObservableProperty] private bool _isEditing;
     [ObservableProperty] private decimal _montant;
@@ -28,7 +28,7 @@ public partial class BonPreparationPaiementRowViewModel : ObservableObject
 
     public Array ModesPaiement => _owner.ModesPaiement;
 
-    public BonPreparationPaiementRowViewModel(BonPreparationEditViewModel owner, PaiementBonPreparation p)
+    public BLPaiementRowViewModel(BLEditViewModel owner, PaiementBonLivraison p)
     {
         _owner = owner;
         Id = p.Id;
@@ -40,7 +40,7 @@ public partial class BonPreparationPaiementRowViewModel : ObservableObject
 
     private bool CanSaveRow() => IsEditing && Montant > 0;
 
-    private bool CanStartEdit() => BonPreparationModifiable && !IsEditing;
+    private bool CanStartEdit() => BlModifiable && !IsEditing;
 
     private bool CanCancelEdit() => IsEditing;
 

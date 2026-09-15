@@ -265,7 +265,7 @@ internal static class UiTranslationExtras
         ["ClientLedger_Empty"] = ("Aucune facture ni règlement pour ce client.", "لا توجد فواتير ولا مدفوعات لهذا العميل."),
         ["ClientLedger_SaveFirst"] = ("Enregistrez le client pour afficher le solde.", "احفظ العميل لعرض الرصيد."),
         ["ClientLedger_FactureFmt"] = ("FACTURE N°{0}", "فاتورة رقم {0}"),
-        ["ClientLedger_BonPreparationFmt"] = ("BON DE PRÉPARATION N°{0}", "إذن تحضير رقم {0}"),
+        ["ClientLedger_BonLivraisonFmt"] = ("BON DE LIVRAISON N°{0}", "إذن تسليم رقم {0}"),
         ["ClientLedger_AvoirFmt"] = ("AVOIR N°{0}", "إشعار دائن رقم {0}"),
         ["ClientLedger_PayVirement"] = ("VIREMENT REÇU", "تحويل بنكي مستلم"),
         ["ClientLedger_PayCheque"] = ("CHÈQUE REÇU", "شيك مستلم"),

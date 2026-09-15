@@ -3,7 +3,7 @@ namespace GestionCommerciale.Modules.Facturation.Services;
 public enum ClientAccountEntryKind
 {
     Facture = 0,
-    BonPreparation = 1,
+    BonLivraison = 1,
     Avoir = 2,
     Paiement = 3
 }

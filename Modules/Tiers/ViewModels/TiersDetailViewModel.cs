@@ -524,7 +524,7 @@ public partial class TiersDetailViewModel : BaseViewModel
             sb.AppendLine();
             var designation = line.Kind == BulkPayableDocumentKind.Facture
                 ? _locale.Tf("ClientLedger_FactureFmt", line.Numero)
-                : _locale.Tf("ClientLedger_BonPreparationFmt", line.Numero);
+                : _locale.Tf("ClientLedger_BonLivraisonFmt", line.Numero);
             sb.AppendLine(designation);
             sb.AppendLine(_locale.Tf("ClientLedger_BulkPayPreviewApplied", FormatAmount(line.Amount)));
             if (line.WillBeFullyPaid)

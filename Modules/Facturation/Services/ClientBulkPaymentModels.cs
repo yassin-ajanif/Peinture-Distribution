@@ -5,7 +5,7 @@ namespace GestionCommerciale.Modules.Facturation.Services;
 public enum BulkPayableDocumentKind
 {
     Facture = 0,
-    BonPreparation = 1
+    BonLivraison = 1
 }
 
 public sealed record BulkPayableDocument(

@@ -7,7 +7,6 @@ using GestionCommerciale.Modules.Facturation.Services;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
 using GestionCommerciale.Modules.Livraison;
 using GestionCommerciale.Modules.Livraison.Models;
-using GestionCommerciale.Modules.Preparation.Models;
 using GestionCommerciale.Modules.Reception.Models;
 using GestionCommerciale.Modules.Tiers.Models;
 using GestionCommerciale.Shared.Database;
@@ -280,45 +279,6 @@ public sealed class PdfService : IPdfService
             docLines.Add(new("Remise globale", $"{facture.RemiseGlobale:N2} %"));
 
         var model = BaseModel(cfg, "FACTURE", docLines, PartyLines(party, "Client"), cols, rows, totals, facture.Note, vis.ShowMontantTtc);
-        return CommercialDocumentPdfRenderer.Render(model, TryLoadLogoBytes(cfg.SocieteLogoPath));
-    }
-
-    public async Task<byte[]> BuildBonPreparationPdfAsync(BonPreparation doc, DocumentPartyPdfInfo party, CancellationToken cancellationToken = default)
-    {
-        var cfg = await _settings.GetAsync(cancellationToken);
-        var meta = await LoadProductMetaAsync(doc.Lignes.Select(l => l.ProduitId), cancellationToken);
-        var totals = DocumentTotalsHelper.BonPreparationTotals(doc.Lignes, doc.RemiseGlobale);
-        var vis = _uiPreferences.GetDocumentLineColumnVisibility("bon_preparation");
-        var lineData = new List<StandardPdfLine>();
-        foreach (var l in doc.Lignes)
-        {
-            var lht = DocumentTotalsHelper.LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            var ttc = lht * (1 + l.TauxTVA / 100m);
-            lineData.Add(new StandardPdfLine(
-                RefCell(meta, l.ProduitId),
-                l.Designation,
-                FmtQty(l.Quantite),
-                l.Conditionnement,
-                FmtUnitPrice(l.PrixUnitaireHT),
-                FmtTvaPct(l.TauxTVA),
-                FmtMoney(l.Remise),
-                FmtMoney(lht),
-                FmtMoney(ttc)));
-        }
-
-        var (cols, rows) = BuildStandardPdfTable(vis, supportsLineRemise: true, "Qté", lineData);
-
-        var docLines = new List<PdfKeyValueLine>
-        {
-            new("N°", doc.Numero),
-            new("Date", doc.Date.ToString("dd/MM/yyyy")),
-            new("Échéance", doc.DateEcheance.ToString("dd/MM/yyyy"))
-        };
-
-        if (doc.RemiseGlobale > 0)
-            docLines.Add(new("Remise globale", $"{doc.RemiseGlobale:N2} %"));
-
-        var model = BaseModel(cfg, "BON DE PRÉPARATION", docLines, PartyLines(party, "Client"), cols, rows, totals, doc.Note, vis.ShowMontantTtc);
         return CommercialDocumentPdfRenderer.Render(model, TryLoadLogoBytes(cfg.SocieteLogoPath));
     }
 

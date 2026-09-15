@@ -5,7 +5,6 @@ using GestionCommerciale.Modules.Devis.Models;
 using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.FactureFournisseur.Models;
 using GestionCommerciale.Modules.Livraison.Models;
-using GestionCommerciale.Modules.Preparation.Models;
 using GestionCommerciale.Modules.Reception.Models;
 
 namespace GestionCommerciale.Shared.Helpers;
@@ -79,32 +78,6 @@ public static class DocumentTotalsHelper
     public static void SyncFactureTotalTtc(Facture facture) =>
         facture.TotalTtc = FactureTtc(facture.Lignes, facture.RemiseGlobale);
 
-    public static (decimal ht, decimal tva, decimal ttc) BonPreparationTotals(IEnumerable<BonPreparationLigne> lignes, decimal remiseGlobalePct)
-    {
-        decimal ht = 0, tva = 0;
-        foreach (var l in lignes)
-        {
-            var lht = LigneHT(l.Quantite, l.PrixUnitaireHT, l.Remise);
-            ht += lht;
-            tva += lht * (l.TauxTVA / 100m);
-        }
-
-        if (remiseGlobalePct > 0)
-        {
-            var factor = 1 - remiseGlobalePct / 100m;
-            ht *= factor;
-            tva *= factor;
-        }
-
-        return (ht, tva, ht + tva);
-    }
-
-    public static decimal BonPreparationTtc(IEnumerable<BonPreparationLigne> lignes, decimal remiseGlobalePct) =>
-        BonPreparationTotals(lignes, remiseGlobalePct).ttc;
-
-    public static void SyncBonPreparationTotalTtc(BonPreparation doc) =>
-        doc.TotalTtc = BonPreparationTtc(doc.Lignes, doc.RemiseGlobale);
-
     public static (decimal ht, decimal tva, decimal ttc) FactureFournisseurTotals(IEnumerable<FactureFournisseurLigne> lignes, decimal remiseGlobalePct)
     {
         decimal ht = 0, tva = 0;
@@ -163,8 +136,8 @@ public static class DocumentTotalsHelper
         return (ht, tva, ht + tva);
     }
 
-    /// <summary>Same semantics as <c>BLEditViewModel.RefreshTotals</c> (TVA included in TTC).</summary>
-    public static (decimal ht, decimal tva, decimal ttc) BonLivraisonTotals(IEnumerable<BonLivraisonLigne> lignes)
+    /// <summary>Same semantics as <c>BLEditViewModel.RefreshTotals</c> (TVA included in TTC), with optional global remise.</summary>
+    public static (decimal ht, decimal tva, decimal ttc) BonLivraisonTotals(IEnumerable<BonLivraisonLigne> lignes, decimal remiseGlobalePct = 0)
     {
         decimal ht = 0, tva = 0;
         foreach (var l in lignes)
@@ -174,8 +147,21 @@ public static class DocumentTotalsHelper
             tva += lht * (l.TauxTVA / 100m);
         }
 
+        if (remiseGlobalePct > 0)
+        {
+            var factor = 1 - remiseGlobalePct / 100m;
+            ht *= factor;
+            tva *= factor;
+        }
+
         return (ht, tva, ht + tva);
     }
+
+    public static decimal BonLivraisonTtc(IEnumerable<BonLivraisonLigne> lignes, decimal remiseGlobalePct = 0) =>
+        BonLivraisonTotals(lignes, remiseGlobalePct).ttc;
+
+    public static void SyncBonLivraisonTotalTtc(BonLivraison doc) =>
+        doc.TotalTtc = BonLivraisonTtc(doc.Lignes, doc.RemiseGlobale);
 
     /// <summary>Same semantics as <c>BCEditViewModel.RefreshTotals</c> when TVA columns are shown.</summary>
     public static (decimal ht, decimal tva, decimal ttc) BonCommandeTotals(IEnumerable<BonCommandeLigne> lignes)

@@ -5,6 +5,7 @@
              xmlns:stock="using:GestionCommerciale.Modules.Stock.Models"
              xmlns:gc="using:GestionCommerciale.Shared.Controls"
              x:Class="GestionCommerciale.Modules.Livraison.Views.BLEditView"
+             x:Name="ThisView"
              x:DataType="vm:BLEditViewModel">
   <ScrollViewer>
     <StackPanel Spacing="10">
@@ -41,7 +42,7 @@
           </Button>
         </StackPanel>
       </Border>
-      <Grid ColumnDefinitions="Auto,8,Auto,8,Auto,8,Auto,20,*" VerticalAlignment="Center">
+      <Grid ColumnDefinitions="Auto,8,Auto,8,Auto,8,Auto,20,*,Auto" VerticalAlignment="Center">
         <TextBlock Grid.Column="0" Text="{Binding LblClient}" VerticalAlignment="Center" Opacity="0.7"/>
         <AutoCompleteBox Grid.Column="4"
                          Width="200"
@@ -72,6 +73,19 @@
         <StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
           <TextBlock Text="{Binding LblDateBl}" VerticalAlignment="Center" Opacity="0.7"/>
           <DatePicker SelectedDate="{Binding Date}"/>
+          <TextBlock Text="{Binding LblDateEcheance}" VerticalAlignment="Center" Opacity="0.7" Margin="8,0,0,0"/>
+          <DatePicker SelectedDate="{Binding DateEcheance}"/>
+        </StackPanel>
+        <StackPanel Grid.Column="9"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    VerticalAlignment="Center"
+                    Margin="16,0,0,0">
+          <TextBlock Text="{Binding LblFactPayee}" VerticalAlignment="Center" Opacity="0.7"/>
+          <ToggleSwitch IsChecked="{Binding EstPayee, Mode=TwoWay}"
+                        OnContent="{Binding LblPaid}"
+                        OffContent="{Binding LblUnpaid}"
+                        IsEnabled="{Binding CanEdit}"/>
         </StackPanel>
       </Grid>
       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -255,9 +269,129 @@
                        Foreground="#3730A3"
                        HorizontalAlignment="Right"
                        IsVisible="{Binding ShowTotalTtc}"/>
+            <Border Height="1" Background="#C7D2FE" Margin="0,6,0,0" Opacity="0.6"/>
+            <TextBlock Text="{Binding MontantPayeLine}" FontSize="12" Opacity="0.75" HorizontalAlignment="Right"/>
           </StackPanel>
         </Border>
       </Grid>
+      <TextBlock Text="{Binding LblPaymentsRecorded}" FontWeight="SemiBold"/>
+      <ItemsControl ItemsSource="{Binding Paiements}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="8"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="vm:BLPaiementRowViewModel">
+            <Border Padding="0,0,0,4" BorderBrush="#20000000" BorderThickness="0,0,0,1">
+              <StackPanel Spacing="0">
+              <!-- Lecture seule : texte + modifier / supprimer -->
+              <WrapPanel Orientation="Horizontal" IsVisible="{Binding !IsEditing}">
+                <StackPanel Margin="0,0,14,6" Spacing="1">
+                  <TextBlock Text="{Binding #ThisView.((vm:BLEditViewModel)DataContext).LblMontant}" Opacity="0.65" FontSize="10"/>
+                  <TextBlock Text="{Binding Montant, StringFormat=\{0:N2\}}" VerticalAlignment="Center" MinHeight="24"/>
+                </StackPanel>
+                <StackPanel Margin="0,0,14,6" Spacing="1">
+                  <TextBlock Text="{Binding #ThisView.((vm:BLEditViewModel)DataContext).LblPaymentDate}" Opacity="0.65" FontSize="10"/>
+                  <TextBlock Text="{Binding Date, StringFormat=\{0:d\}}" VerticalAlignment="Center" MinHeight="24"/>
+                </StackPanel>
+                <StackPanel Margin="0,0,14,6" Spacing="1">
+                  <TextBlock Text="{Binding #ThisView.((vm:BLEditViewModel)DataContext).LblMode}" Opacity="0.65" FontSize="10"/>
+                  <TextBlock Text="{Binding Mode, Converter={StaticResource ModePaiementLabelConverter}}" VerticalAlignment="Center" MinHeight="24" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+                </StackPanel>
+                <StackPanel Margin="0,0,14,6" Spacing="1">
+                  <TextBlock Text="{Binding #ThisView.((vm:BLEditViewModel)DataContext).LblReference}" Opacity="0.65" FontSize="10"/>
+                  <TextBlock Text="{Binding Reference}" VerticalAlignment="Center" MinHeight="24" TextTrimming="CharacterEllipsis" MaxWidth="320"/>
+                </StackPanel>
+                <StackPanel Margin="0,0,0,6" Orientation="Horizontal" Spacing="6" VerticalAlignment="Bottom">
+                  <Button Padding="8,6" MinWidth="36" MinHeight="32"
+                          ToolTip.Tip="{Binding #ThisView.((vm:BLEditViewModel)DataContext).PayEditTooltip}"
+                          Command="{Binding StartEditCommand}"
+                          IsEnabled="{Binding BlModifiable}">
+                    <Path Stretch="Uniform" Width="16" Height="16"
+                          Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm4.59-2.83l9.06-9.06 2.12 2.12-9.06 9.06H7.59v-2.12zM20.71 5.63l-1.34-1.34a.996.996 0 0 0-1.41 0l-1.12 1.12 3.75 3.75 1.12-1.12a.996.996 0 0 0 0-1.41z"
+                          Fill="{DynamicResource CourseraTextBrush}"/>
+                  </Button>
+                  <Button Content="{Binding #ThisView.((vm:BLEditViewModel)DataContext).BtnDelete}" Padding="10,6" MinHeight="32"
+                          Command="{Binding DeleteCommand}" IsEnabled="{Binding BlModifiable}"/>
+                </StackPanel>
+              </WrapPanel>
+              <!-- Édition -->
+              <WrapPanel Orientation="Horizontal" IsVisible="{Binding IsEditing}">
+                <StackPanel Margin="0,0,10,6" Spacing="1">
+                  <TextBlock Text="{Binding #ThisView.((vm:BLEditViewModel)DataContext).LblMontant}" Opacity="0.65" FontSize="10"/>
+                  <NumericUpDown Width="92" MinHeight="32" Padding="8,5" FormatString="N2" Minimum="0" Increment="1"
+                                 Value="{Binding Montant, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 IsEnabled="{Binding BlModifiable}"/>
+                </StackPanel>
+                <StackPanel Margin="0,0,10,6" Spacing="1">
+                  <TextBlock Text="{Binding #ThisView.((vm:BLEditViewModel)DataContext).LblPaymentDate}" Opacity="0.65" FontSize="10"/>
+                  <DatePicker SelectedDate="{Binding Date, Mode=TwoWay}"
+                              MaxWidth="252" HorizontalAlignment="Left"
+                              IsEnabled="{Binding BlModifiable}"/>
+                </StackPanel>
+                <StackPanel Margin="0,0,10,6" Spacing="1">
+                  <TextBlock Text="{Binding #ThisView.((vm:BLEditViewModel)DataContext).LblMode}" Opacity="0.65" FontSize="10"/>
+                  <ComboBox Width="118" MinHeight="32" ItemsSource="{Binding ModesPaiement}" SelectedItem="{Binding Mode, Mode=TwoWay}"
+                            IsEnabled="{Binding BlModifiable}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding ., Converter={StaticResource ModePaiementLabelConverter}}" TextTrimming="CharacterEllipsis"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+                <StackPanel Margin="0,0,10,6" Spacing="1">
+                  <TextBlock Text="{Binding #ThisView.((vm:BLEditViewModel)DataContext).LblReference}" Opacity="0.65" FontSize="10"/>
+                  <TextBox Width="320" MinHeight="32" Padding="8,5" Watermark="{Binding #ThisView.((vm:BLEditViewModel)DataContext).WmRefShort}" Text="{Binding Reference, Mode=TwoWay}"
+                           IsEnabled="{Binding BlModifiable}"/>
+                </StackPanel>
+                <StackPanel Margin="0,0,0,6" Orientation="Horizontal" Spacing="6" VerticalAlignment="Bottom">
+                  <Button Content="{Binding #ThisView.((vm:BLEditViewModel)DataContext).BtnSave}" Padding="10,6" MinHeight="32"
+                          Command="{Binding SaveCommand}" IsEnabled="{Binding BlModifiable}"/>
+                  <Button Content="{Binding #ThisView.((vm:BLEditViewModel)DataContext).BtnCancel}" Padding="10,6" MinHeight="32"
+                          Command="{Binding CancelEditCommand}" IsEnabled="{Binding BlModifiable}"/>
+                  <Button Content="{Binding #ThisView.((vm:BLEditViewModel)DataContext).BtnDelete}" Padding="10,6" MinHeight="32"
+                          Command="{Binding DeleteCommand}" IsEnabled="{Binding BlModifiable}"/>
+                </StackPanel>
+              </WrapPanel>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Text="{Binding LblNewPayment}" FontWeight="SemiBold"/>
+      <WrapPanel Orientation="Horizontal">
+        <StackPanel Margin="0,0,10,6" Spacing="1">
+          <TextBlock Text="{Binding LblMontant}" Opacity="0.65" FontSize="10"/>
+          <NumericUpDown Value="{Binding PaiementMontant, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         FormatString="N2" Minimum="0" Increment="1" Width="92" MinHeight="32" Padding="8,5"
+                         IsEnabled="{Binding CanEdit}"/>
+        </StackPanel>
+        <StackPanel Margin="0,0,10,6" Spacing="1">
+          <TextBlock Text="{Binding LblPaymentDate}" Opacity="0.65" FontSize="10"/>
+          <DatePicker SelectedDate="{Binding PaiementDate, Mode=TwoWay}" MaxWidth="252" HorizontalAlignment="Left"
+                      IsEnabled="{Binding CanEdit}"/>
+        </StackPanel>
+        <StackPanel Margin="0,0,10,6" Spacing="1">
+          <TextBlock Text="{Binding LblMode}" Opacity="0.65" FontSize="10"/>
+          <ComboBox ItemsSource="{Binding ModesPaiement}" SelectedItem="{Binding PaiementMode}" Width="118" MinHeight="32"
+                    IsEnabled="{Binding CanEdit}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding ., Converter={StaticResource ModePaiementLabelConverter}}" TextTrimming="CharacterEllipsis"/>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Margin="0,0,10,6" Spacing="1">
+          <TextBlock Text="{Binding LblReference}" Opacity="0.65" FontSize="10"/>
+          <TextBox Watermark="{Binding WmRefShort}" Text="{Binding PaiementReference}" Width="320" MinHeight="32" Padding="8,5"
+                   IsEnabled="{Binding CanEdit}"/>
+        </StackPanel>
+        <Button Margin="0,0,0,6" Content="{Binding BtnAddPayment}" Padding="10,6" MinHeight="32" VerticalAlignment="Bottom"
+                Command="{Binding AddPaiementCommand}" IsEnabled="{Binding CanEdit}"/>
+      </WrapPanel>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

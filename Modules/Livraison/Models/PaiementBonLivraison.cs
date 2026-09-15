@@ -1,12 +1,12 @@
 using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Shared.Models;
 
-namespace GestionCommerciale.Modules.Preparation.Models;
+namespace GestionCommerciale.Modules.Livraison.Models;
 
-public class PaiementBonPreparation : BaseEntity
+public class PaiementBonLivraison : BaseEntity
 {
-    public int BonPreparationId { get; set; }
-    public BonPreparation? BonPreparation { get; set; }
+    public int BonLivraisonId { get; set; }
+    public BonLivraison? BonLivraison { get; set; }
     public decimal Montant { get; set; }
     public DateTime Date { get; set; }
     public ModePaiement Mode { get; set; }

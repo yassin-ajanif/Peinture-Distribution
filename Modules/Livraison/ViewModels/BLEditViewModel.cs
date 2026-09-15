@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestionCommerciale.Modules.Auth.Services;
 using GestionCommerciale.Modules.Stock;
+using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Modules.Facturation.Services;
 using GestionCommerciale.Modules.Facturation.ViewModels;
 using GestionCommerciale.Modules.CommandeClient.ViewModels;
@@ -122,6 +123,22 @@ public partial class BLEditViewModel : BaseViewModel
     [ObservableProperty] private string _lblDocColMontantHt = string.Empty;
     [ObservableProperty] private string _lblDocColMontantTtc = string.Empty;
     [ObservableProperty] private string _lblTotals = string.Empty;
+    [ObservableProperty] private string _montantPayeLine = string.Empty;
+    [ObservableProperty] private string _lblPaymentsRecorded = string.Empty;
+    [ObservableProperty] private string _lblMontant = string.Empty;
+    [ObservableProperty] private string _lblPaymentDate = string.Empty;
+    [ObservableProperty] private string _lblMode = string.Empty;
+    [ObservableProperty] private string _lblReference = string.Empty;
+    [ObservableProperty] private string _wmRefShort = string.Empty;
+    [ObservableProperty] private string _lblNewPayment = string.Empty;
+    [ObservableProperty] private string _btnAddPayment = string.Empty;
+    [ObservableProperty] private string _btnDelete = string.Empty;
+    [ObservableProperty] private string _btnCancel = string.Empty;
+    [ObservableProperty] private string _payEditTooltip = string.Empty;
+    [ObservableProperty] private string _lblFactPayee = string.Empty;
+    [ObservableProperty] private string _lblPaid = string.Empty;
+    [ObservableProperty] private string _lblUnpaid = string.Empty;
+    [ObservableProperty] private string _lblDateEcheance = string.Empty;
     [ObservableProperty] private string _invoicedLabel = string.Empty;
     [ObservableProperty] private string _bccLabel = string.Empty;
     [ObservableProperty] private string _lblLinkedBcc = string.Empty;
@@ -213,6 +230,21 @@ public partial class BLEditViewModel : BaseViewModel
         LblDocColMontantHt = _locale.T("DocLine_ColMontantHt");
         LblDocColMontantTtc = _locale.T("DocLine_ColMontantTtc");
         LblTotals = _locale.T("Lbl_Totals");
+        LblPaymentsRecorded = _locale.T("Lbl_PaymentsRecorded");
+        LblMontant = _locale.T("Lbl_Montant");
+        LblPaymentDate = _locale.T("Lbl_PaymentDate");
+        LblMode = _locale.T("Lbl_Mode");
+        LblReference = _locale.T("Lbl_Reference");
+        WmRefShort = _locale.T("Lbl_RefShort");
+        LblNewPayment = _locale.T("Lbl_NewPayment");
+        BtnAddPayment = _locale.T("Btn_AddPayment");
+        BtnDelete = _locale.T("Btn_Delete");
+        BtnCancel = _locale.T("Btn_Cancel");
+        PayEditTooltip = _locale.T("Pay_EditTooltip");
+        LblFactPayee = _locale.T("Bp_LblPayee");
+        LblPaid = _locale.T("Bp_Paid");
+        LblUnpaid = _locale.T("Bp_Unpaid");
+        LblDateEcheance = _locale.T("Lbl_DateEcheance");
         LblLinkedBcc = _locale.T("Fact_LinkedBccs");
         BtnAddBcc = _locale.T("Fact_AddBcc");
         WmBonCommandeReference = _locale.T("Fact_WmBonCommandeReference");
@@ -232,6 +264,7 @@ public partial class BLEditViewModel : BaseViewModel
     public WhatsAppOpenHelper WhatsApp { get; }
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
     public ObservableCollection<BLLineRow> Lignes { get; } = [];
+    public ObservableCollection<BLPaiementRowViewModel> Paiements { get; } = [];
 
     [ObservableProperty] private int? _blId;
     [ObservableProperty] private int? _devisId;
@@ -241,13 +274,33 @@ public partial class BLEditViewModel : BaseViewModel
 
     [ObservableProperty] private string _numero = string.Empty;
     [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
+    [ObservableProperty] private DateTimeOffset _dateEcheance = new(DateTime.Today.AddDays(30));
+    [ObservableProperty] private bool _estPayee;
+    [ObservableProperty] private decimal _remiseGlobale;
+    [ObservableProperty] private decimal _montantPaye;
+    [ObservableProperty] private decimal _paiementMontant;
+    [ObservableProperty] private DateTimeOffset _paiementDate = new(DateTime.Today);
+    [ObservableProperty] private ModePaiement _paiementMode = ModePaiement.Especes;
+    [ObservableProperty] private string _paiementReference = string.Empty;
     [ObservableProperty] private string _note = string.Empty;
     [ObservableProperty] private bool _isReadOnly;
     [ObservableProperty] private BLLineRow? _selectedLine;
 
     public bool CanEdit => !IsReadOnly;
 
-    partial void OnBlIdChanged(int? value) => RemoveBlCommand.NotifyCanExecuteChanged();
+    public Array ModesPaiement => Enum.GetValues(typeof(ModePaiement));
+
+    private bool CanExecuteAddPaiement() => BlId.HasValue;
+
+    partial void OnMontantPayeChanged(decimal value) => UpdateTotalLabels(TotalHt, TotalTva, TotalTtc);
+
+    partial void OnRemiseGlobaleChanged(decimal value) => RefreshTotals();
+
+    partial void OnBlIdChanged(int? value)
+    {
+        RemoveBlCommand.NotifyCanExecuteChanged();
+        AddPaiementCommand.NotifyCanExecuteChanged();
+    }
 
     private bool CanRemoveBl() => BlId != null;
 
@@ -270,7 +323,7 @@ public partial class BLEditViewModel : BaseViewModel
                 return;
             }
 
-            var entity = await db.BonsLivraison.Include(b => b.Lignes).FirstAsync(b => b.Id == id, cancellationToken);
+            var entity = await db.BonsLivraison.Include(b => b.Lignes).Include(b => b.Paiements).FirstAsync(b => b.Id == id, cancellationToken);
             await _stock.ResyncBonLivraisonStockAsync(db, entity.Id, entity.Numero, Enumerable.Empty<(int ProduitId, decimal QuantiteLivree)>(), null, cancellationToken);
             db.BonsLivraison.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
@@ -280,6 +333,68 @@ public partial class BLEditViewModel : BaseViewModel
         catch (Exception ex)
         {
             await _dialog.ShowErrorAsync(_locale.T("BL_DlgShort"), ex.Message, cancellationToken);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void ReloadPaiementsList(IEnumerable<PaiementBonLivraison> paiements)
+    {
+        Paiements.Clear();
+        foreach (var p in paiements.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id))
+            Paiements.Add(new BLPaiementRowViewModel(this, p));
+    }
+
+    public async Task CommitPaiementRowAsync(BLPaiementRowViewModel row, CancellationToken cancellationToken = default)
+    {
+        if (IsBusy) return;
+        if (BlId == null || row.Montant <= 0)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), _locale.T("Pay_ErrAmount"), cancellationToken);
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            await _workflow.UpdatePaiementAsync(
+                BlId.Value,
+                row.Id,
+                row.Montant,
+                row.Date.DateTime,
+                row.Mode,
+                row.Reference,
+                cancellationToken);
+            await LoadAsync(BlId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), ex.Message, cancellationToken);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task DeletePaiementRowAsync(BLPaiementRowViewModel row, CancellationToken cancellationToken = default)
+    {
+        if (IsBusy) return;
+        if (BlId == null) return;
+        if (!await _dialog.ConfirmAsync(_locale.T("Pay_Title"), _locale.T("Pay_ConfirmDelete"), cancellationToken))
+            return;
+
+        try
+        {
+            IsBusy = true;
+            await _workflow.DeletePaiementAsync(BlId.Value, row.Id, cancellationToken);
+            await LoadAsync(BlId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), ex.Message, cancellationToken);
         }
         finally
         {
@@ -379,6 +494,12 @@ public partial class BLEditViewModel : BaseViewModel
         {
             Numero = "(brouillon)";
             ClientId = Clients.FirstOrDefault()?.Id ?? 0;
+            Date = new DateTimeOffset(DateTime.Today);
+            DateEcheance = Date.AddDays(30);
+            EstPayee = false;
+            RemiseGlobale = 0;
+            MontantPaye = 0;
+            Paiements.Clear();
             IsReadOnly = false;
             Title = _locale.T("BL_NewTitle");
             RefreshTotals();
@@ -389,7 +510,7 @@ public partial class BLEditViewModel : BaseViewModel
         if (factNum != null)
             InvoicedLabel = _locale.Tf("BL_FacturedOn", factNum);
 
-        var b = await db.BonsLivraison.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
+        var b = await db.BonsLivraison.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
         _linkedFactureId = b.FactureId;
         _linkedBccId = b.BonCommandeClientId;
         DevisId = b.DevisId;
@@ -406,6 +527,9 @@ public partial class BLEditViewModel : BaseViewModel
         Numero = b.Numero;
         ClientId = b.ClientId;
         Date = new DateTimeOffset(b.Date);
+        DateEcheance = new DateTimeOffset(b.DateEcheance == default ? b.Date.AddDays(30) : b.DateEcheance);
+        EstPayee = b.EstPayee;
+        RemiseGlobale = b.RemiseGlobale;
         Note = userNote;
         foreach (var l in b.Lignes)
         {
@@ -424,6 +548,11 @@ public partial class BLEditViewModel : BaseViewModel
             });
         }
 
+        MontantPaye = b.Paiements.Sum(p => p.Montant);
+        ReloadPaiementsList(b.Paiements);
+        DocumentTotalsHelper.SyncBonLivraisonTotalTtc(b);
+        if (db.Entry(b).Property(x => x.TotalTtc).IsModified)
+            await db.SaveChangesAsync(cancellationToken);
         IsReadOnly = false;
         Title = _locale.Tf("BL_TitleNum", Numero);
         RefreshTotals();
@@ -454,6 +583,11 @@ public partial class BLEditViewModel : BaseViewModel
         ClientId = bcc.ClientId;
         DevisId = bcc.DevisId;
         Date = new DateTimeOffset(DateTime.Today);
+        DateEcheance = Date.AddDays(30);
+        EstPayee = false;
+        RemiseGlobale = 0;
+        MontantPaye = 0;
+        Paiements.Clear();
         Note = string.Empty;
         Numero = "(brouillon)";
         foreach (var l in bcc.Lignes.OrderBy(x => x.Id))
@@ -497,6 +631,11 @@ public partial class BLEditViewModel : BaseViewModel
         DevisId = d.Id;
         ClientId = d.ClientId;
         Date = new DateTimeOffset(DateTime.Today);
+        DateEcheance = Date.AddDays(30);
+        EstPayee = false;
+        RemiseGlobale = 0;
+        MontantPaye = 0;
+        Paiements.Clear();
         BlId = null;
         Numero = "(brouillon)";
         Lignes.Clear();
@@ -568,15 +707,49 @@ public partial class BLEditViewModel : BaseViewModel
     private void RefreshTotals()
     {
         var includeTvaInTotals = ShowTotalTtc;
-        var ht = Lignes.Sum(l => l.MontantHt);
-        var tva = includeTvaInTotals
-            ? Lignes.Sum(l => l.MontantHt * (l.TauxTva / 100m))
-            : 0m;
-        var ttc = ht + tva;
+        var lines = Lignes.Select(l => new BonLivraisonLigne
+        {
+            QuantiteLivree = l.QuantiteLivree,
+            PrixUnitaireHT = l.PrixUnitaireHt,
+            Remise = l.Remise,
+            TauxTVA = includeTvaInTotals ? l.TauxTva : 0
+        });
+        var (ht, tva, ttc) = DocumentTotalsHelper.BonLivraisonTotals(lines, RemiseGlobale);
         TotalHt = ht;
         TotalTva = tva;
         TotalTtc = ttc;
         UpdateTotalLabels(ht, tva, ttc);
+        RefreshSuggestedPaiementMontant();
+    }
+
+    private void RefreshSuggestedPaiementMontant()
+    {
+        if (!BlId.HasValue) return;
+        var fullTtc = ComputeFullPaymentTtc();
+        PaiementMontant = Math.Round(Math.Max(0, fullTtc - MontantPaye), 2);
+    }
+
+    private decimal ComputeFullPaymentTtc() =>
+        DocumentTotalsHelper.BonLivraisonTtc(
+            Lignes.Select(l => new BonLivraisonLigne
+            {
+                QuantiteLivree = l.QuantiteLivree,
+                PrixUnitaireHT = l.PrixUnitaireHt,
+                Remise = l.Remise,
+                TauxTVA = l.TauxTva
+            }),
+            RemiseGlobale);
+
+    private async Task<bool> ValidatePaymentsAgainstTtcAsync(decimal ttc, decimal totalPayments, CancellationToken cancellationToken)
+    {
+        if (!DocumentTotalsHelper.PaymentsExceedTtc(ttc, totalPayments))
+            return true;
+
+        await _dialog.ShowErrorAsync(
+            _locale.T("Pay_Title"),
+            _locale.Tf("Pay_ErrPaymentsExceedTtc", totalPayments, ttc),
+            cancellationToken);
+        return false;
     }
 
     private void UpdateTotalLabels(decimal ht, decimal tva, decimal ttc)
@@ -584,6 +757,7 @@ public partial class BLEditViewModel : BaseViewModel
         TotalHtLabel = _locale.Tf("Doc_FmtHt", ht, Devise).TrimEnd();
         TotalTvaLabel = _locale.Tf("Doc_FmtTva", tva, Devise).TrimEnd();
         TotalTtcLabel = _locale.Tf("Doc_FmtTtc", ttc, Devise).TrimEnd();
+        MontantPayeLine = _locale.Tf("Doc_FmtPaye", MontantPaye);
     }
 
     partial void OnDeviseChanged(string value)
@@ -616,13 +790,24 @@ public partial class BLEditViewModel : BaseViewModel
             return;
         }
 
-        if (DocumentTotalsHelper.IsEffectivelyZeroTotal(TotalTtc))
+        if (DocumentTotalsHelper.IsEffectivelyZeroTotal(ComputeFullPaymentTtc()))
         {
             await _dialog.ShowErrorAsync(_locale.T("BL_DlgShort"), _locale.T("Doc_ErrZeroTtc"), cancellationToken);
             return;
         }
 
-        var creditWarning = await _creditLimit.GetBlDocumentCreditWarningAsync(ClientId, TotalTtc, cancellationToken);
+        var proposedTtc = ComputeFullPaymentTtc();
+        if (BlId != null)
+        {
+            await using var checkDb = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            var paid = await checkDb.PaiementsBonLivraison.AsNoTracking()
+                .Where(p => p.BonLivraisonId == BlId)
+                .SumAsync(p => p.Montant, cancellationToken);
+            if (!await ValidatePaymentsAgainstTtcAsync(proposedTtc, paid, cancellationToken))
+                return;
+        }
+
+        var creditWarning = await _creditLimit.GetBlDocumentCreditWarningAsync(ClientId, proposedTtc, cancellationToken);
         if (creditWarning is not null
             && !await _dialog.ConfirmAsync(_locale.T("CreditLimit_WarnTitle"), creditWarning, cancellationToken))
             return;
@@ -676,6 +861,9 @@ public partial class BLEditViewModel : BaseViewModel
                     ClientId = ClientId,
                     DevisId = DevisId,
                     Date = Date.DateTime,
+                    DateEcheance = DateEcheance.DateTime,
+                    EstPayee = EstPayee,
+                    RemiseGlobale = RemiseGlobale,
                     Note = BonCommandeReferenceStorage.Format(BonCommandeReference, Note),
                     CreatedByUserId = _session.UserId
                 };
@@ -693,6 +881,7 @@ public partial class BLEditViewModel : BaseViewModel
                     });
                 }
 
+                DocumentTotalsHelper.SyncBonLivraisonTotalTtc(entity);
                 db.BonsLivraison.Add(entity);
                 await db.SaveChangesAsync(cancellationToken);
                 BlId = entity.Id;
@@ -703,6 +892,9 @@ public partial class BLEditViewModel : BaseViewModel
                 entity.ClientId = ClientId;
                 entity.DevisId = DevisId;
                 entity.Date = Date.DateTime;
+                entity.DateEcheance = DateEcheance.DateTime;
+                entity.EstPayee = EstPayee;
+                entity.RemiseGlobale = RemiseGlobale;
                 entity.Note = BonCommandeReferenceStorage.Format(BonCommandeReference, Note);
                 entity.BonCommandeClientId = null;
                 db.BonLivraisonLignes.RemoveRange(entity.Lignes);
@@ -720,6 +912,7 @@ public partial class BLEditViewModel : BaseViewModel
                     });
                 }
 
+                DocumentTotalsHelper.SyncBonLivraisonTotalTtc(entity);
                 await db.SaveChangesAsync(cancellationToken);
             }
 
@@ -737,6 +930,53 @@ public partial class BLEditViewModel : BaseViewModel
             Numero = entity.Numero;
             await _dialog.ShowInfoAsync(_locale.T("BL_DlgShort"), _locale.T("BL_Saved"), cancellationToken);
             await LoadAsync(BlId, cancellationToken);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanExecuteAddPaiement))]
+    private async Task AddPaiementAsync(CancellationToken cancellationToken)
+    {
+        if (IsBusy) return;
+
+        if (!BlId.HasValue)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), _locale.T("Pay_ErrSaveFirst"), cancellationToken);
+            return;
+        }
+
+        if (PaiementMontant <= 0)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), _locale.T("Pay_ErrAmount"), cancellationToken);
+            return;
+        }
+
+        var fullTtc = ComputeFullPaymentTtc();
+        if (!await ValidatePaymentsAgainstTtcAsync(fullTtc, MontantPaye + PaiementMontant, cancellationToken))
+            return;
+
+        try
+        {
+            IsBusy = true;
+            await _workflow.AddPaiementAsync(BlId.Value, new PaiementBonLivraison
+            {
+                Montant = PaiementMontant,
+                Date = PaiementDate.DateTime,
+                Mode = PaiementMode,
+                Reference = PaiementReference,
+                CreatedByUserId = _session.UserId
+            }, cancellationToken);
+            PaiementMontant = 0;
+            PaiementReference = string.Empty;
+            PaiementDate = new DateTimeOffset(DateTime.Today);
+            await LoadAsync(BlId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), ex.Message, cancellationToken);
         }
         finally
         {
@@ -840,7 +1080,7 @@ public partial class BLEditViewModel : BaseViewModel
             return;
         }
 
-        var creditWarning = await _creditLimit.GetBlDocumentCreditWarningAsync(ClientId, TotalTtc, cancellationToken);
+        var creditWarning = await _creditLimit.GetBlDocumentCreditWarningAsync(ClientId, ComputeFullPaymentTtc(), cancellationToken);
         if (creditWarning is not null
             && !await _dialog.ConfirmAsync(_locale.T("CreditLimit_WarnTitle"), creditWarning, cancellationToken))
             return;
