@@ -135,7 +135,7 @@ public partial class AvoirEditViewModel : BaseViewModel
     [ObservableProperty] private string _numero = string.Empty;
     [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
     [ObservableProperty] private string _motif = string.Empty;
-    [ObservableProperty] private bool _retourMarchandise;
+    [ObservableProperty] private bool _retourMarchandise = true;
     [ObservableProperty] private decimal _totalHt;
     [ObservableProperty] private decimal _totalTva;
     [ObservableProperty] private decimal _totalTtc;
@@ -390,7 +390,7 @@ public partial class AvoirEditViewModel : BaseViewModel
         Numero = _locale.T("Avoir_DraftPlaceholder");
         Date = new DateTimeOffset(DateTime.Today);
         Motif = string.Empty;
-        RetourMarchandise = false;
+        RetourMarchandise = true;
         CanEditDraft = true;
         await LoadDeviseAsync(cancellationToken);
         await LoadProduitsAsync(cancellationToken);
