@@ -24,28 +24,48 @@
             <MenuItem Header="{Binding MenuDeleteBl}" Command="{Binding RemoveBlCommand}"/>
           </ContextMenu>
         </Border.ContextMenu>
-        <StackPanel Orientation="Horizontal" Spacing="12">
-          <TextBlock Text="{Binding Numero}" FontWeight="Bold"/>
-          <Button Classes="docLink"
-                  Command="{Binding OpenLinkedBccCommand}"
-                  IsVisible="{Binding HasBccLabel}">
-            <Border Padding="6,1" Background="#DBEAFE" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="4">
-              <TextBlock Text="{Binding BccLabel}" FontSize="11" FontWeight="SemiBold" Foreground="#1E40AF"/>
-            </Border>
-          </Button>
-          <Button Classes="docLink"
-                  Command="{Binding OpenLinkedFactureCommand}"
-                  IsVisible="{Binding HasInvoicedLabel}">
-            <Border Padding="6,1" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="4">
-              <TextBlock Text="{Binding InvoicedLabel}" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/>
-            </Border>
-          </Button>
-        </StackPanel>
+        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Numero}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+            <Button Classes="docLink"
+                    Command="{Binding OpenLinkedBccCommand}"
+                    IsVisible="{Binding HasBccLabel}">
+              <Border Padding="6,1" Background="#DBEAFE" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="4">
+                <TextBlock Text="{Binding BccLabel}" FontSize="11" FontWeight="SemiBold" Foreground="#1E40AF"/>
+              </Border>
+            </Button>
+            <Button Classes="docLink"
+                    Command="{Binding OpenLinkedFactureCommand}"
+                    IsVisible="{Binding HasInvoicedLabel}">
+              <Border Padding="6,1" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="4">
+                <TextBlock Text="{Binding InvoicedLabel}" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/>
+              </Border>
+            </Button>
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="8,0,0,0">
+              <TextBlock Text="{Binding LblDateBl}" VerticalAlignment="Center" Opacity="0.7"/>
+              <DatePicker SelectedDate="{Binding Date}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <TextBlock Text="{Binding LblDateEcheance}" VerticalAlignment="Center" Opacity="0.7"/>
+              <DatePicker SelectedDate="{Binding DateEcheance}"/>
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Grid.Column="2"
+                      Orientation="Horizontal"
+                      Spacing="10"
+                      VerticalAlignment="Center"
+                      Margin="16,0,0,0">
+            <TextBlock Text="{Binding LblFactPayee}" VerticalAlignment="Center" Opacity="0.7"/>
+            <ToggleSwitch IsChecked="{Binding EstPayee, Mode=TwoWay}"
+                          OnContent="{Binding LblPaid}"
+                          OffContent="{Binding LblUnpaid}"
+                          IsEnabled="{Binding CanEdit}"/>
+          </StackPanel>
+        </Grid>
       </Border>
-      <Grid ColumnDefinitions="Auto,8,Auto,8,Auto,8,Auto,20,*,Auto" VerticalAlignment="Center">
-        <TextBlock Grid.Column="0" Text="{Binding LblClient}" VerticalAlignment="Center" Opacity="0.7"/>
-        <AutoCompleteBox Grid.Column="4"
-                         Width="200"
+      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <TextBlock Text="{Binding LblClient}" VerticalAlignment="Center" Opacity="0.7"/>
+        <AutoCompleteBox Width="200"
                          MinWidth="160"
                          MaxWidth="200"
                          HorizontalAlignment="Left"
@@ -64,30 +84,12 @@
             </DataTemplate>
           </AutoCompleteBox.ItemTemplate>
         </AutoCompleteBox>
-        <TextBlock Grid.Column="6"
-                   Text="{Binding ClientSolde.Text}"
+        <TextBlock Text="{Binding ClientSolde.Text}"
                    FontWeight="Bold"
                    Foreground="#EA580C"
                    VerticalAlignment="Center"
                    IsVisible="{Binding ClientSolde.IsVisible}"/>
-        <StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <TextBlock Text="{Binding LblDateBl}" VerticalAlignment="Center" Opacity="0.7"/>
-          <DatePicker SelectedDate="{Binding Date}"/>
-          <TextBlock Text="{Binding LblDateEcheance}" VerticalAlignment="Center" Opacity="0.7" Margin="8,0,0,0"/>
-          <DatePicker SelectedDate="{Binding DateEcheance}"/>
-        </StackPanel>
-        <StackPanel Grid.Column="9"
-                    Orientation="Horizontal"
-                    Spacing="10"
-                    VerticalAlignment="Center"
-                    Margin="16,0,0,0">
-          <TextBlock Text="{Binding LblFactPayee}" VerticalAlignment="Center" Opacity="0.7"/>
-          <ToggleSwitch IsChecked="{Binding EstPayee, Mode=TwoWay}"
-                        OnContent="{Binding LblPaid}"
-                        OffContent="{Binding LblUnpaid}"
-                        IsEnabled="{Binding CanEdit}"/>
-        </StackPanel>
-      </Grid>
+      </StackPanel>
       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
         <TextBlock Text="{Binding LblLinkedBcc}" Opacity="0.7" VerticalAlignment="Center"/>
         <Button Content="{Binding BtnAddBcc}" Command="{Binding ShowBccPickerCommand}" IsEnabled="{Binding CanEdit}"/>

@@ -729,16 +729,19 @@ public partial class BLEditViewModel : BaseViewModel
         PaiementMontant = Math.Round(Math.Max(0, fullTtc - MontantPaye), 2);
     }
 
-    private decimal ComputeFullPaymentTtc() =>
-        DocumentTotalsHelper.BonLivraisonTtc(
+    private decimal ComputeFullPaymentTtc()
+    {
+        var includeTva = ShowTotalTtc;
+        return DocumentTotalsHelper.BonLivraisonTtc(
             Lignes.Select(l => new BonLivraisonLigne
             {
                 QuantiteLivree = l.QuantiteLivree,
                 PrixUnitaireHT = l.PrixUnitaireHt,
                 Remise = l.Remise,
-                TauxTVA = l.TauxTva
+                TauxTVA = includeTva ? l.TauxTva : 0
             }),
             RemiseGlobale);
+    }
 
     private async Task<bool> ValidatePaymentsAgainstTtcAsync(decimal ttc, decimal totalPayments, CancellationToken cancellationToken)
     {
@@ -877,7 +880,7 @@ public partial class BLEditViewModel : BaseViewModel
                         QuantiteLivree = l.QuantiteLivree,
                         PrixUnitaireHT = l.PrixUnitaireHt,
                         Remise = l.Remise,
-                        TauxTVA = l.TauxTva
+                        TauxTVA = ShowTotalTtc ? l.TauxTva : 0
                     });
                 }
 
@@ -908,7 +911,7 @@ public partial class BLEditViewModel : BaseViewModel
                         QuantiteLivree = l.QuantiteLivree,
                         PrixUnitaireHT = l.PrixUnitaireHt,
                         Remise = l.Remise,
-                        TauxTVA = l.TauxTva
+                        TauxTVA = ShowTotalTtc ? l.TauxTva : 0
                     });
                 }
 
