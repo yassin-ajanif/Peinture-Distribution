@@ -1,5 +1,4 @@
 using GestionCommerciale.Modules.Facturation.Models;
-using GestionCommerciale.Modules.Livraison.Models;
 using GestionCommerciale.Shared.Database;
 using GestionCommerciale.Shared.Helpers;
 using GestionCommerciale.Shared.Services;
@@ -21,25 +20,6 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
     public async Task<ClientAccountStatementResult> GetStatementAsync(int clientId, CancellationToken cancellationToken = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-
-        var factures = await db.Factures.AsNoTracking()
-            .Where(f => f.ClientId == clientId)
-            .Select(f => new
-            {
-                f.Id,
-                f.Numero,
-                f.Date,
-                f.TotalTtc,
-                Paiements = f.Paiements!.Select(p => new
-                {
-                    p.Id,
-                    p.Date,
-                    p.Montant,
-                    p.Mode,
-                    p.Reference
-                }).ToList()
-            })
-            .ToListAsync(cancellationToken);
 
         var avoirs = await db.Avoirs.AsNoTracking()
             .Where(a => a.ClientId == clientId)
@@ -80,21 +60,6 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
 
         var entries = new List<(DateTime Date, ClientAccountEntryKind Kind, long TieBreakId, string Designation, string Observation, decimal Debit, decimal Credit)>();
 
-        foreach (var f in factures)
-        {
-            var ttc = f.TotalTtc;
-            if (ttc <= 0) continue;
-
-            entries.Add((
-                f.Date.Date,
-                ClientAccountEntryKind.Facture,
-                f.Id,
-                _locale.Tf("ClientLedger_FactureFmt", f.Numero),
-                string.Empty,
-                ttc,
-                0));
-        }
-
         foreach (var b in bonsLivraison)
         {
             var ttc = b.TotalTtc;
@@ -131,23 +96,6 @@ public sealed class ClientAccountStatementService : IClientAccountStatementServi
                 observation,
                 0,
                 ttc));
-        }
-
-        foreach (var f in factures)
-        {
-            foreach (var p in f.Paiements)
-            {
-                if (p.Montant <= 0 || p.Mode == ModePaiement.Credit) continue;
-                var observation = string.IsNullOrWhiteSpace(p.Reference) ? string.Empty : p.Reference.Trim();
-                entries.Add((
-                    p.Date.Date,
-                    ClientAccountEntryKind.Paiement,
-                    p.Id,
-                    PaymentDesignation(p.Mode),
-                    observation,
-                    0,
-                    p.Montant));
-            }
         }
 
         foreach (var b in bonsLivraison)

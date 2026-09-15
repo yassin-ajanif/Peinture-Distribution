@@ -283,8 +283,7 @@ public partial class ReportingViewModel : BaseViewModel
             .Select(f => new {
                 f.Numero,
                 f.DateEcheance,
-                TTC = f.Lignes.Sum(l => l.Quantite * l.PrixUnitaireHT * (1m - l.Remise / 100m) * (1m + l.TauxTVA / 100m)) * (1m - f.RemiseGlobale / 100m),
-                Paye = f.Paiements.Sum(p => (decimal?)p.Montant) ?? 0m
+                TTC = f.Lignes.Sum(l => l.Quantite * l.PrixUnitaireHT * (1m - l.Remise / 100m) * (1m + l.TauxTVA / 100m)) * (1m - f.RemiseGlobale / 100m)
             })
             .OrderBy(f => f.DateEcheance)
             .Take(200)
@@ -295,7 +294,7 @@ public partial class ReportingViewModel : BaseViewModel
         var unpaidRows = new List<ReportUnpaidRow>();
         foreach (var f in unpaidProj)
         {
-            var reste = f.TTC - f.Paye;
+            var reste = f.TTC;
             if (reste <= 0.01m) continue;
 
             encoursTotal += reste;

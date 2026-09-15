@@ -356,8 +356,7 @@ public sealed class ReportService : IReportService
                 Lignes = f.Lignes!.Select(l => new
                 {
                     l.Quantite, l.PrixUnitaireHT, l.Remise, l.TauxTVA
-                }).ToList(),
-                Paiements = f.Paiements!.Select(p => p.Montant).ToList()
+                }).ToList()
             })
             .ToListAsync(ct);
 
@@ -372,8 +371,7 @@ public sealed class ReportService : IReportService
                 TauxTVA = l.TauxTVA
             }).ToList();
             var (_, _, ttc) = DocumentTotalsHelper.FactureTotals(lignes, f.RemiseGlobale);
-            var paye = f.Paiements.Sum();
-            var reste = ttc - paye;
+            var reste = ttc;
             if (reste <= 0.01m) continue;
 
             var due = f.DateEcheance.Date;

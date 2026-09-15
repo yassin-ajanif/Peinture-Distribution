@@ -16,5 +16,4 @@ public class Facture : BaseEntity
     /// <summary>Editable bon de commande reference shown on the invoice (free text).</summary>
     public string BonCommandeReference { get; set; } = string.Empty;
     public List<FactureLigne> Lignes { get; set; } = [];
-    public List<Paiement> Paiements { get; set; } = [];
 }

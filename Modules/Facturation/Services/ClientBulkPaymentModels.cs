@@ -2,14 +2,7 @@ using GestionCommerciale.Modules.Facturation.Models;
 
 namespace GestionCommerciale.Modules.Facturation.Services;
 
-public enum BulkPayableDocumentKind
-{
-    Facture = 0,
-    BonLivraison = 1
-}
-
 public sealed record BulkPayableDocument(
-    BulkPayableDocumentKind Kind,
     int DocumentId,
     string Numero,
     DateTime Date,
@@ -18,7 +11,6 @@ public sealed record BulkPayableDocument(
     decimal Remaining);
 
 public sealed record BulkPaymentAllocationLine(
-    BulkPayableDocumentKind Kind,
     int DocumentId,
     string Numero,
     DateTime DocumentDate,

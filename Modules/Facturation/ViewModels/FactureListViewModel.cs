@@ -210,7 +210,7 @@ public partial class FactureListViewModel : BaseViewModel
                 return;
             }
 
-            var entity = await db.Factures.Include(f => f.Lignes).Include(f => f.Paiements).FirstAsync(f => f.Id == item.Id, cancellationToken);
+            var entity = await db.Factures.Include(f => f.Lignes).FirstAsync(f => f.Id == item.Id, cancellationToken);
             db.Factures.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
 
@@ -236,7 +236,7 @@ public partial class FactureListViewModel : BaseViewModel
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            var f = await db.Factures.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == Selected.Facture.Id, cancellationToken);
+            var f = await db.Factures.Include(x => x.Lignes).FirstAsync(x => x.Id == Selected.Facture.Id, cancellationToken);
             var client = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == f.ClientId, cancellationToken);
             var bytes = await _pdf.BuildFacturePdfAsync(f, DocumentPartyPdfInfo.FromTiers(client), cancellationToken);
             var ok = await _dialog.SavePickedFileBytesAsync(_locale.T("Export_PdfPicker"), $"{f.Numero}.pdf", new[] { "*.pdf" }, bytes, cancellationToken);

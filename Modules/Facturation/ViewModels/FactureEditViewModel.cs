@@ -27,7 +27,6 @@ public partial class FactureEditViewModel : BaseViewModel
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IDocumentNumberService _numbers;
     private readonly IAppSettingsService _settings;
-    private readonly IFactureWorkflowService _factureWorkflow;
     private readonly IDialogService _dialog;
     private readonly WorkspaceNavigator _workspace;
     private readonly IServiceProvider _sp;
@@ -45,7 +44,6 @@ public partial class FactureEditViewModel : BaseViewModel
         IDbContextFactory<AppDbContext> dbFactory,
         IDocumentNumberService numbers,
         IAppSettingsService settings,
-        IFactureWorkflowService factureWorkflow,
         IFactureBlLinkService blLinkService,
         IFactureBccLinkService bccLinkService,
         IClientCreditLimitService creditLimit,
@@ -62,7 +60,6 @@ public partial class FactureEditViewModel : BaseViewModel
         _dbFactory = dbFactory;
         _numbers = numbers;
         _settings = settings;
-        _factureWorkflow = factureWorkflow;
         _dialog = dialog;
         _workspace = workspaceNavigator;
         _sp = sp;
@@ -95,7 +92,6 @@ public partial class FactureEditViewModel : BaseViewModel
     public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients => ClientLookup.Clients;
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
     public ObservableCollection<FactureLineRow> Lignes { get; } = [];
-    public ObservableCollection<FacturePaiementRowViewModel> Paiements { get; } = [];
     public ObservableCollection<LinkedBlRow> LinkedBls { get; } = [];
 
     [ObservableProperty] private int? _factureId;
@@ -112,13 +108,8 @@ public partial class FactureEditViewModel : BaseViewModel
     [ObservableProperty] private decimal _totalHt;
     [ObservableProperty] private decimal _totalTva;
     [ObservableProperty] private decimal _totalTtc;
-    [ObservableProperty] private decimal _montantPaye;
     [ObservableProperty] private bool _canEditDraft;
 
-    [ObservableProperty] private decimal _paiementMontant;
-    [ObservableProperty] private DateTime _paiementDate = DateTime.Today;
-    [ObservableProperty] private ModePaiement _paiementMode = ModePaiement.Especes;
-    [ObservableProperty] private string _paiementReference = string.Empty;
     [ObservableProperty] private FactureLineRow? _selectedLine;
     [ObservableProperty] private string _addLineSearchText = string.Empty;
     [ObservableProperty] private object? _addLineCatalogPick;
@@ -142,18 +133,8 @@ public partial class FactureEditViewModel : BaseViewModel
     [ObservableProperty] private string _totalHtLabel = string.Empty;
     [ObservableProperty] private string _totalTvaLabel = string.Empty;
     [ObservableProperty] private string _totalTtcLabel = string.Empty;
-    [ObservableProperty] private string _montantPayeLine = string.Empty;
-    [ObservableProperty] private string _lblPaymentsRecorded = string.Empty;
-    [ObservableProperty] private string _lblMontant = string.Empty;
-    [ObservableProperty] private string _lblPaymentDate = string.Empty;
-    [ObservableProperty] private string _lblMode = string.Empty;
-    [ObservableProperty] private string _lblReference = string.Empty;
-    [ObservableProperty] private string _wmRefShort = string.Empty;
-    [ObservableProperty] private string _lblNewPayment = string.Empty;
-    [ObservableProperty] private string _btnAddPayment = string.Empty;
     [ObservableProperty] private string _btnDelete = string.Empty;
     [ObservableProperty] private string _btnCancel = string.Empty;
-    [ObservableProperty] private string _payEditTooltip = string.Empty;
     [ObservableProperty] private string _lblDocLineColumnsHint = string.Empty;
     [ObservableProperty] private string _lblDocColRef = string.Empty;
     [ObservableProperty] private string _lblDocColDesignation = string.Empty;
@@ -208,17 +189,8 @@ public partial class FactureEditViewModel : BaseViewModel
         BtnRemoveLine = _locale.T("Btn_RemoveLine");
         LblCatalogHintFacture = _locale.T("Lbl_CatalogHintFacture");
         LblTotals = _locale.T("Lbl_Totals");
-        LblPaymentsRecorded = _locale.T("Lbl_PaymentsRecorded");
-        LblMontant = _locale.T("Lbl_Montant");
-        LblPaymentDate = _locale.T("Lbl_PaymentDate");
-        LblMode = _locale.T("Lbl_Mode");
-        LblReference = _locale.T("Lbl_Reference");
-        WmRefShort = _locale.T("Lbl_RefShort");
-        LblNewPayment = _locale.T("Lbl_NewPayment");
-        BtnAddPayment = _locale.T("Btn_AddPayment");
         BtnDelete = _locale.T("Btn_Delete");
         BtnCancel = _locale.T("Btn_Cancel");
-        PayEditTooltip = _locale.T("Pay_EditTooltip");
         LblFactPayee = _locale.T("Fact_LblPayee");
         LblPaid = _locale.T("Fact_Paid");
         LblUnpaid = _locale.T("Fact_Unpaid");
@@ -245,7 +217,6 @@ public partial class FactureEditViewModel : BaseViewModel
         TotalHtLabel = _locale.Tf("Doc_FmtHt", TotalHt, Devise).TrimEnd();
         TotalTvaLabel = _locale.Tf("Doc_FmtTva", TotalTva, Devise).TrimEnd();
         TotalTtcLabel = _locale.Tf("Doc_FmtTtc", TotalTtc, Devise).TrimEnd();
-        MontantPayeLine = _locale.Tf("Doc_FmtPaye", MontantPaye);
     }
 
     partial void OnDeviseChanged(string value)
@@ -255,15 +226,8 @@ public partial class FactureEditViewModel : BaseViewModel
             _ = ClientSolde.RefreshAsync(ClientId, value);
     }
 
-    public Array ModesPaiement => Enum.GetValues(typeof(ModePaiement));
-
-    private bool CanExecuteAddPaiement() => FactureId.HasValue;
-
-    partial void OnMontantPayeChanged(decimal value) => UpdateFactureTotalLines();
-
     partial void OnFactureIdChanged(int? value)
     {
-        AddPaiementCommand.NotifyCanExecuteChanged();
         RemoveFactureCommand.NotifyCanExecuteChanged();
     }
 
@@ -287,7 +251,7 @@ public partial class FactureEditViewModel : BaseViewModel
                 return;
             }
 
-            var entity = await db.Factures.Include(f => f.Lignes).Include(f => f.Paiements).FirstAsync(f => f.Id == id, cancellationToken);
+            var entity = await db.Factures.Include(f => f.Lignes).FirstAsync(f => f.Id == id, cancellationToken);
             db.Factures.Remove(entity);
             await db.SaveChangesAsync(cancellationToken);
 
@@ -297,68 +261,6 @@ public partial class FactureEditViewModel : BaseViewModel
         catch (Exception ex)
         {
             await _dialog.ShowErrorAsync(_locale.T("Fact_Title"), ex.Message, cancellationToken);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    private void ReloadPaiementsList(IEnumerable<Paiement> paiements)
-    {
-        Paiements.Clear();
-        foreach (var p in paiements.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id))
-            Paiements.Add(new FacturePaiementRowViewModel(this, p));
-    }
-
-    public async Task CommitPaiementRowAsync(FacturePaiementRowViewModel row, CancellationToken cancellationToken = default)
-    {
-        if (IsBusy) return;
-        if (FactureId == null || row.Montant <= 0)
-        {
-            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), _locale.T("Pay_ErrAmount"), cancellationToken);
-            return;
-        }
-
-        try
-        {
-            IsBusy = true;
-            await _factureWorkflow.UpdatePaiementAsync(
-                FactureId.Value,
-                row.Id,
-                row.Montant,
-                row.Date,
-                row.Mode,
-                row.Reference,
-                cancellationToken);
-            await LoadAsync(FactureId, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), ex.Message, cancellationToken);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    public async Task DeletePaiementRowAsync(FacturePaiementRowViewModel row, CancellationToken cancellationToken = default)
-    {
-        if (IsBusy) return;
-        if (FactureId == null) return;
-        if (!await _dialog.ConfirmAsync(_locale.T("Pay_Title"), _locale.T("Pay_ConfirmDelete"), cancellationToken))
-            return;
-
-        try
-        {
-            IsBusy = true;
-            await _factureWorkflow.DeletePaiementAsync(FactureId.Value, row.Id, cancellationToken);
-            await LoadAsync(FactureId, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), ex.Message, cancellationToken);
         }
         finally
         {
@@ -443,14 +345,6 @@ public partial class FactureEditViewModel : BaseViewModel
         TotalTva = tva;
         TotalTtc = ttc;
         UpdateFactureTotalLines();
-        RefreshSuggestedPaiementMontant();
-    }
-
-    private void RefreshSuggestedPaiementMontant()
-    {
-        if (!FactureId.HasValue) return;
-        var fullTtc = ComputeFullPaymentTtc();
-        PaiementMontant = Math.Round(Math.Max(0, fullTtc - MontantPaye), 2);
     }
 
     private decimal ComputeFullPaymentTtc() =>
@@ -463,18 +357,6 @@ public partial class FactureEditViewModel : BaseViewModel
                 TauxTVA = l.TauxTva
             }),
             RemiseGlobale);
-
-    private async Task<bool> ValidatePaymentsAgainstTtcAsync(decimal ttc, decimal totalPayments, CancellationToken cancellationToken)
-    {
-        if (!DocumentTotalsHelper.PaymentsExceedTtc(ttc, totalPayments))
-            return true;
-
-        await _dialog.ShowErrorAsync(
-            _locale.T("Pay_Title"),
-            _locale.Tf("Pay_ErrPaymentsExceedTtc", totalPayments, ttc),
-            cancellationToken);
-        return false;
-    }
 
     partial void OnRemiseGlobaleChanged(decimal value) => RefreshTotals();
 
@@ -531,13 +413,11 @@ public partial class FactureEditViewModel : BaseViewModel
             EstPayee = false;
             CanEditDraft = true;
             Title = _locale.T("Fact_NewTitle");
-            MontantPaye = 0;
-            Paiements.Clear();
             RefreshTotals();
             return;
         }
 
-        var f = await db.Factures.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
+        var f = await db.Factures.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
         var linkedBls = await db.BonsLivraison.AsNoTracking()
             .Where(b => b.FactureId == id)
             .OrderBy(b => b.Date).ThenBy(b => b.Numero)
@@ -581,8 +461,6 @@ public partial class FactureEditViewModel : BaseViewModel
         }
 
         HookLines();
-        MontantPaye = f.Paiements.Sum(p => p.Montant);
-        ReloadPaiementsList(f.Paiements);
         DocumentTotalsHelper.SyncFactureTotalTtc(f);
         if (db.Entry(f).Property(x => x.TotalTtc).IsModified)
             await db.SaveChangesAsync(cancellationToken);
@@ -749,8 +627,6 @@ public partial class FactureEditViewModel : BaseViewModel
 
         HookLines();
         CanEditDraft = true;
-        MontantPaye = 0;
-        Paiements.Clear();
         Title = blIds.Count > 1 ? _locale.T("Fact_FromMultiBl") : _locale.T("Fact_FromBl");
         RefreshTotals();
     }
@@ -791,8 +667,6 @@ public partial class FactureEditViewModel : BaseViewModel
 
         HookLines();
         CanEditDraft = true;
-        MontantPaye = 0;
-        Paiements.Clear();
         Title = _locale.T("Fact_FromDevis");
         RefreshTotals();
     }
@@ -860,11 +734,6 @@ public partial class FactureEditViewModel : BaseViewModel
                 .Where(f => f.Id == FactureId)
                 .Select(f => f.TotalTtc)
                 .FirstOrDefaultAsync(cancellationToken);
-            var paid = await checkDb.Paiements.AsNoTracking()
-                .Where(p => p.FactureId == FactureId)
-                .SumAsync(p => p.Montant, cancellationToken);
-            if (!await ValidatePaymentsAgainstTtcAsync(proposedTtc, paid, cancellationToken))
-                return;
         }
 
         var creditBlock = await _creditLimit.GetBlockMessageIfFactureWouldExceedAsync(
@@ -988,53 +857,6 @@ public partial class FactureEditViewModel : BaseViewModel
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanExecuteAddPaiement))]
-    private async Task AddPaiementAsync(CancellationToken cancellationToken)
-    {
-        if (IsBusy) return;
-
-        if (!FactureId.HasValue)
-        {
-            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), _locale.T("Pay_ErrSaveFirst"), cancellationToken);
-            return;
-        }
-
-        if (PaiementMontant <= 0)
-        {
-            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), _locale.T("Pay_ErrAmount"), cancellationToken);
-            return;
-        }
-
-        var fullTtc = ComputeFullPaymentTtc();
-        if (!await ValidatePaymentsAgainstTtcAsync(fullTtc, MontantPaye + PaiementMontant, cancellationToken))
-            return;
-
-        try
-        {
-            IsBusy = true;
-            await _factureWorkflow.AddPaiementAsync(FactureId.Value, new Paiement
-            {
-                Montant = PaiementMontant,
-                Date = PaiementDate,
-                Mode = PaiementMode,
-                Reference = PaiementReference,
-                CreatedByUserId = _session.UserId
-            }, cancellationToken);
-            PaiementMontant = 0;
-            PaiementReference = string.Empty;
-            PaiementDate = DateTime.Today;
-            await LoadAsync(FactureId, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            await _dialog.ShowErrorAsync(_locale.T("Pay_Title"), ex.Message, cancellationToken);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
     [RelayCommand]
     private void OpenLinkedBl(LinkedBlRow? bl)
     {
@@ -1100,7 +922,7 @@ public partial class FactureEditViewModel : BaseViewModel
     {
         if (FactureId is not { } id) return null;
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var f = await db.Factures.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
+        var f = await db.Factures.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
         f.BonCommandeReference = BonCommandeReference.Trim();
         var client = await db.Tiers.AsNoTracking().FirstAsync(t => t.Id == f.ClientId, cancellationToken);
         return await _pdf.BuildFacturePdfAsync(f, DocumentPartyPdfInfo.FromTiers(client), cancellationToken);

@@ -61,9 +61,6 @@ public class PerformanceTestService
         progress.Report("Mise à jour des totaux TTC des factures...");
         await UpdateFactureTotalTtcAsync(conn, factureMeta, ct);
 
-        progress.Report("Création des paiements clients (soldes)...");
-        var paiementCount = await InsertPaiementsAsync(conn, max.PaiementId, factureMeta, now, ct);
-
         progress.Report("Création des mouvements de stock (sorties BL)...");
         var mvtCount = await InsertStockMovementsAsync(conn, max.MouvementId, max.ProdId, blLines, now, ct);
 
@@ -72,10 +69,10 @@ public class PerformanceTestService
 
         sw.Stop();
         var e = sw.Elapsed;
-        return $"Terminé en {e.Hours}h {e.Minutes}m {e.Seconds}s ({e.TotalSeconds:F1}s) — {ProductCount:N0} produits, {DocumentCount:N0} BL, {DocumentCount:N0} factures, {paiementCount:N0} paiements, {mvtCount:N0} mouvements stock sur {dayCount:N0} jours (~{dayCount / 365.25:F1} ans à {DocumentsPerDay}/jour).";
+        return $"Terminé en {e.Hours}h {e.Minutes}m {e.Seconds}s ({e.TotalSeconds:F1}s) — {ProductCount:N0} produits, {DocumentCount:N0} BL, {DocumentCount:N0} factures, {mvtCount:N0} mouvements stock sur {dayCount:N0} jours (~{dayCount / 365.25:F1} ans à {DocumentsPerDay}/jour).";
     }
 
-    private static async Task<(long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId)>
+    private static async Task<(long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long MouvementId)>
         GetMaxIdsAsync(SqliteConnection conn, CancellationToken ct)
     {
         async Task<long> Max(string table)
@@ -93,7 +90,6 @@ public class PerformanceTestService
             await Max("FactureLignes"),
             await Max("BonsLivraison"),
             await Max("BonLivraisonLignes"),
-            await Max("Paiements"),
             await Max("MouvementsStock")
         );
     }
@@ -159,7 +155,7 @@ public class PerformanceTestService
     }
 
     private static async Task InsertBlHeadersAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long MouvementId) max,
         string now, DateTime startDate, CancellationToken ct)
     {
         const int batch = 500;
@@ -185,7 +181,7 @@ public class PerformanceTestService
     }
 
     private static async Task<List<(long BlId, long ProdId, decimal Qty)>> InsertBlLinesAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long MouvementId) max,
         CancellationToken ct)
     {
         const int batch = 1000;
@@ -241,7 +237,7 @@ public class PerformanceTestService
     }
 
     private static async Task<FactureMeta[]> InsertFactureHeadersAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long MouvementId) max,
         string now, DateTime startDate, CancellationToken ct)
     {
         const int batch = 500;
@@ -280,7 +276,7 @@ public class PerformanceTestService
     }
 
     private static async Task InsertFactureLinesAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long MouvementId) max,
         FactureMeta[] factureMeta, CancellationToken ct)
     {
         const int batch = 1000;
@@ -347,61 +343,6 @@ public class PerformanceTestService
         }
     }
 
-    private static async Task<int> InsertPaiementsAsync(SqliteConnection conn, long startPaiementId, FactureMeta[] factureMeta, string now, CancellationToken ct)
-    {
-        const int batch = 500;
-        var paiementId = startPaiementId;
-        var count = 0;
-        System.Text.StringBuilder? sb = null;
-        var batchCount = 0;
-
-        foreach (var f in factureMeta)
-        {
-            if (f.TotalTtc <= 0) continue;
-
-            decimal montant;
-            DateTime date;
-            if (f.EstPayee)
-            {
-                montant = f.TotalTtc;
-                date = f.Date.AddDays(Rng.Next(0, 31));
-            }
-            else if (Rng.NextDouble() < 0.45)
-            {
-                montant = Math.Round(f.TotalTtc * Rng.Next(20, 81) / 100m, 2);
-                date = f.Date.AddDays(Rng.Next(5, 91));
-            }
-            else continue;
-
-            if (montant <= 0) continue;
-
-            if (batchCount % batch == 0)
-            {
-                if (sb != null)
-                {
-                    await ExecAsync(conn, sb.ToString(), ct);
-                    sb = null;
-                }
-                sb = new System.Text.StringBuilder();
-                sb.Append("INSERT INTO Paiements (Id,CreatedAt,UpdatedAt,FactureId,Montant,Date,Mode,Reference) VALUES ");
-            }
-            else
-            {
-                sb!.Append(',');
-            }
-
-            paiementId++;
-            var mode = Rng.Next(0, 6);
-            var reference = $"REF-{paiementId:D7}";
-            sb!.Append(CultureInfo.InvariantCulture, $"({paiementId},'{now}','{now}',{f.Id},{montant:F2},'{date:yyyy-MM-dd}',{mode},'{reference}')");
-            count++;
-            batchCount++;
-        }
-
-        if (sb != null) await ExecAsync(conn, sb.ToString(), ct);
-        return count;
-    }
-
     private static async Task<int> InsertStockMovementsAsync(
         SqliteConnection conn,
         long startMouvementId,
@@ -454,7 +395,7 @@ public class PerformanceTestService
     }
 
     private static async Task LinkBlToFacturesAsync(SqliteConnection conn,
-        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long PaiementId, long MouvementId) max,
+        (long ProdId, long TiersId, long FactId, long FactLigneId, long BLId, long BLLigneId, long MouvementId) max,
         CancellationToken ct)
     {
         const int batch = 500;

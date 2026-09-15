@@ -60,7 +60,6 @@ public static class DependencyInjection
         services.AddSingleton<ISupplierBulkPaymentService, SupplierBulkPaymentService>();
         services.AddSingleton<IClientCreditLimitService, ClientCreditLimitService>();
         services.AddSingleton<ISupplierAccountStatementService, SupplierAccountStatementService>();
-        services.AddSingleton<IFactureWorkflowService, FactureWorkflowService>();
         services.AddSingleton<IAvoirWorkflowService, AvoirWorkflowService>();
         services.AddSingleton<IReportService, ReportService>();
         services.AddSingleton<ILicenseService, LicenseService>();

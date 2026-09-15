@@ -29,7 +29,6 @@ public sealed class AvoirWorkflowService : IAvoirWorkflowService
         if (avoir.FactureId.HasValue)
         {
             var facture = await db.Factures
-                .Include(f => f.Paiements)
                 .FirstAsync(f => f.Id == avoir.FactureId.Value, cancellationToken);
 
             var ttcFacture = facture.TotalTtc;

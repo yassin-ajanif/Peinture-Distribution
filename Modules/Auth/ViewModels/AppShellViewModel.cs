@@ -214,7 +214,7 @@ public partial class AppShellViewModel : BaseViewModel
     public bool ShowNavBL => _session.CanAccessBL;
     public bool ShowNavBR => _session.CanAccessBR;
     public bool ShowNavBC => _session.CanAccessBC;
-    public bool ShowNavFactures => false;
+    public bool ShowNavFactures => _session.CanAccessFacturation;
     public bool ShowNavAvoirs => _session.CanAccessAvoir;
     public bool ShowNavFacturesFournisseur => _session.CanAccessFacturation;
     public bool ShowNavAvoirFournisseur => _session.CanAccessAvoir;

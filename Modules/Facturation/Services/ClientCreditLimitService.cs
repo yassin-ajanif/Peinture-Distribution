@@ -41,16 +41,9 @@ public sealed class ClientCreditLimitService : IClientCreditLimitService
         decimal existingFactureTtc = 0m,
         CancellationToken cancellationToken = default)
     {
-        var maxCredit = await GetMaxCreditAsync(clientId, cancellationToken);
-        if (maxCredit is null)
-            return null;
-
-        var statement = await _ledger.GetStatementAsync(clientId, cancellationToken);
-        var projected = statement.SoldeActuel - existingFactureTtc + proposedFactureTtc;
-        if (projected <= maxCredit.Value)
-            return null;
-
-        return FormatWouldExceedMessage(projected, maxCredit.Value);
+        _ = proposedFactureTtc;
+        _ = existingFactureTtc;
+        return await GetBlockMessageIfLimitExceededAsync(clientId, cancellationToken);
     }
 
     public async Task<string?> GetBlDocumentCreditWarningAsync(
@@ -98,14 +91,4 @@ public sealed class ClientCreditLimitService : IClientCreditLimitService
             "CreditLimit_Exceeded",
             CurrencyHelper.Format(solde),
             CurrencyHelper.Format(maxCredit));
-
-    private string FormatWouldExceedMessage(decimal projected, decimal maxCredit)
-    {
-        var overrun = projected - maxCredit;
-        return _locale.Tf(
-            "CreditLimit_WouldExceed",
-            CurrencyHelper.Format(overrun),
-            CurrencyHelper.Format(projected),
-            CurrencyHelper.Format(maxCredit));
-    }
 }

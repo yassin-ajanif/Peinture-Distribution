@@ -41,7 +41,6 @@ public class AppDbContext : DbContext
     public DbSet<PaiementFournisseur> PaiementsFournisseurs => Set<PaiementFournisseur>();
     public DbSet<Facture> Factures => Set<Facture>();
     public DbSet<FactureLigne> FactureLignes => Set<FactureLigne>();
-    public DbSet<Paiement> Paiements => Set<Paiement>();
     public DbSet<Avoir> Avoirs => Set<Avoir>();
     public DbSet<AvoirLigne> AvoirLignes => Set<AvoirLigne>();
     public DbSet<AvoirFournisseur> AvoirsFournisseurs => Set<AvoirFournisseur>();
@@ -212,7 +211,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Facture>(e =>
         {
             e.HasMany(f => f.Lignes).WithOne(l => l.Facture).HasForeignKey(l => l.FactureId).OnDelete(DeleteBehavior.Cascade);
-            e.HasMany(f => f.Paiements).WithOne(p => p.Facture).HasForeignKey(p => p.FactureId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Tiers>().WithMany().HasForeignKey(f => f.ClientId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(f => f.ClientId);
         });
@@ -223,11 +221,6 @@ public class AppDbContext : DbContext
                 .HasForeignKey(l => l.BonLivraisonId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(l => l.BonLivraisonId);
-        });
-
-        modelBuilder.Entity<Paiement>(e =>
-        {
-            e.Property(p => p.Mode).HasConversion<int>();
         });
 
         modelBuilder.Entity<PaiementFournisseur>(e =>

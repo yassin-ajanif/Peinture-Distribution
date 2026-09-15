@@ -272,9 +272,6 @@ public sealed class PdfService : IPdfService
         if (!string.IsNullOrWhiteSpace(bccRef))
             docLines.Add(new("BC", bccRef));
 
-        // var pay = SummarizePaiements(facture.Paiements);
-        // if (!string.IsNullOrWhiteSpace(pay))
-        //     docLines.Add(new("Payé par", pay!));
         if (facture.RemiseGlobale > 0)
             docLines.Add(new("Remise globale", $"{facture.RemiseGlobale:N2} %"));
 
@@ -704,25 +701,6 @@ public sealed class PdfService : IPdfService
 
     private static string ConditionnementCell(string? conditionnement, Dictionary<int, ProductPdfMeta> meta, int produitId) =>
         string.IsNullOrWhiteSpace(conditionnement) ? UniteCell(meta, produitId) : conditionnement.Trim();
-
-    private static string? SummarizePaiements(IReadOnlyList<Paiement>? paiements)
-    {
-        if (paiements == null || paiements.Count == 0) return null;
-        var total = paiements.Sum(p => p.Montant);
-        var modes = string.Join(", ", paiements.Select(p => ModeFr(p.Mode)).Distinct());
-        return $"{total:N2} — {modes}";
-    }
-
-    private static string ModeFr(ModePaiement m) => m switch
-    {
-        ModePaiement.Credit => "Crédit",
-        ModePaiement.Cheque => "Chèque",
-        ModePaiement.Especes => "Espèces",
-        ModePaiement.TPE => "TPE",
-        ModePaiement.Virement => "Virement",
-        ModePaiement.Effet => "Effet",
-        _ => m.ToString()
-    };
 
     private async Task<Dictionary<int, ProductPdfMeta>> LoadProductMetaAsync(IEnumerable<int> productIds, CancellationToken cancellationToken)
     {
