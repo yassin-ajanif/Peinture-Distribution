@@ -6,7 +6,6 @@ namespace GestionCommerciale.Modules.Tiers.Models;
 public class Tiers : BaseEntity
 {
     public TypeTiers Type { get; set; }
-    public CategorieTiers Categorie { get; set; } = CategorieTiers.Officiel;
     public string Nom { get; set; } = string.Empty;
     public string ICE { get; set; } = string.Empty;
     public string Adresse { get; set; } = string.Empty;

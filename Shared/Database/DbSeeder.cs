@@ -34,7 +34,6 @@ public static class DbSeeder
             {
                 Nom = DefaultClientName,
                 Type = GestionCommerciale.Modules.Tiers.Models.TypeTiers.Client,
-                Categorie = GestionCommerciale.Modules.Tiers.Models.CategorieTiers.Comptoir,
                 Actif = true
             });
             db.SaveChanges();

@@ -88,7 +88,6 @@ public partial class BonPreparationEditViewModel : BaseViewModel
         _uiPreferences.LoadDocumentLineColumns("bon_preparation", LineGridColumns);
         Title = _locale.T("Bp_Title");
         RefreshBonPreparationUi();
-        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
     public ClientCategoryFilter ClientLookup { get; } = new();
@@ -487,7 +486,6 @@ public partial class BonPreparationEditViewModel : BaseViewModel
     {
         if (SelectedClient?.Id != value)
         {
-            ClientLookup.EnsureCategoryFor(value);
             SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
         }
 

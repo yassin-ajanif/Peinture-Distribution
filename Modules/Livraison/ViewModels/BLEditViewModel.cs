@@ -94,7 +94,6 @@ public partial class BLEditViewModel : BaseViewModel
         Title = _locale.T("BL_Title");
         Lignes.CollectionChanged += LignesOnCollectionChanged;
         RefreshBlUi();
-        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
     [ObservableProperty] private string _btnPdf = string.Empty;
@@ -305,7 +304,6 @@ public partial class BLEditViewModel : BaseViewModel
     {
         if (SelectedClient?.Id != value)
         {
-            ClientLookup.EnsureCategoryFor(value);
             SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
         }
 

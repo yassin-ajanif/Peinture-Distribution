@@ -75,7 +75,6 @@ public partial class DevisEditViewModel : BaseViewModel
         Title = _locale.T("Devis_Title");
         Lignes.CollectionChanged += LignesOnCollectionChanged;
         RefreshDevisUi();
-        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
     [ObservableProperty] private string _btnPdf = string.Empty;
@@ -293,7 +292,6 @@ public partial class DevisEditViewModel : BaseViewModel
     {
         if (SelectedClient?.Id != value)
         {
-            ClientLookup.EnsureCategoryFor(value);
             SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
         }
 

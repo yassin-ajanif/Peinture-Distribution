@@ -71,7 +71,6 @@ public partial class BCVEditViewModel : BaseViewModel
         Lignes.CollectionChanged += LignesOnCollectionChanged;
         Title = _locale.T("BCC_Title");
         RefreshBccUi();
-        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
     [ObservableProperty] private string _btnPdf = string.Empty;
@@ -314,7 +313,6 @@ public partial class BCVEditViewModel : BaseViewModel
     {
         if (SelectedClient?.Id != value)
         {
-            ClientLookup.EnsureCategoryFor(value);
             SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
         }
 

@@ -116,7 +116,6 @@ public partial class AvoirEditViewModel : BaseViewModel
         _uiPreferences.LoadDocumentLineColumns("avoir", LineGridColumns);
         Title = _locale.T("Avoir_Title");
         RefreshAvoirUi();
-        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
         _ = LoadClientsAsync(CancellationToken.None);
     }
 
@@ -278,7 +277,6 @@ public partial class AvoirEditViewModel : BaseViewModel
     {
         if (SelectedClient?.Id != value)
         {
-            ClientLookup.EnsureCategoryFor(value);
             SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
         }
 

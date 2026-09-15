@@ -8,10 +8,6 @@
       <StackPanel Spacing="8">
         <Button Content="{Binding BtnBackList}" Command="{Binding BackCommand}" HorizontalAlignment="Left"/>
         <ComboBox ItemsSource="{Binding Types}" SelectedItem="{Binding Type}"/>
-        <StackPanel Spacing="3">
-          <TextBlock Text="{Binding LblCategorie}"/>
-          <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding Categorie}"/>
-        </StackPanel>
 
         <StackPanel Spacing="3">
           <TextBlock Text="{Binding WmNom}"/>

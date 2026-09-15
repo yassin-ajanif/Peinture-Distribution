@@ -105,12 +105,6 @@
     <Setter Property="Opacity" Value="0.8"/>
   </Style>
 
-  <Style Selector="ComboBox.clientCat">
-    <Setter Property="MinWidth" Value="120"/>
-    <Setter Property="MaxWidth" Value="150"/>
-    <Setter Property="Padding" Value="8,6"/>
-  </Style>
-
   <Style Selector="Button.primary">
     <Setter Property="Background" Value="{DynamicResource CourseraPrimaryBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource CourseraPrimaryBrush}"/>

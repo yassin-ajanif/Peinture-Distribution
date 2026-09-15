@@ -71,7 +71,6 @@ public sealed class PosService : IPosService
         {
             Nom = DbSeeder.DefaultClientName,
             Type = TypeTiers.Client,
-            Categorie = CategorieTiers.Comptoir,
             Actif = true
         });
         await db.SaveChangesAsync(cancellationToken);

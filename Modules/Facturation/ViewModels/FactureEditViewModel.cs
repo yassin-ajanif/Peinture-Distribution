@@ -87,7 +87,6 @@ public partial class FactureEditViewModel : BaseViewModel
         _uiPreferences.LoadDocumentLineColumns("facture", LineGridColumns);
         Title = _locale.T("Fact_Title");
         RefreshFactureUi();
-        ClientLookup.BindSelection(() => ClientId, c => SelectedClient = c);
     }
 
     public ClientCategoryFilter ClientLookup { get; } = new();
@@ -496,7 +495,6 @@ public partial class FactureEditViewModel : BaseViewModel
     {
         if (SelectedClient?.Id != value)
         {
-            ClientLookup.EnsureCategoryFor(value);
             SelectedClient = Clients.FirstOrDefault(c => c.Id == value);
         }
 

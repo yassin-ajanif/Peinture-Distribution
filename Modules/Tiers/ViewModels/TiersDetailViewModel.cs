@@ -101,7 +101,6 @@ public partial class TiersDetailViewModel : BaseViewModel
     [ObservableProperty] private string _lblMaxCredit = string.Empty;
     [ObservableProperty] private string _chkActif = string.Empty;
     [ObservableProperty] private string _btnSave = string.Empty;
-    [ObservableProperty] private string _lblCategorie = string.Empty;
     [ObservableProperty] private bool _showMaxCredit;
 
     [ObservableProperty] private string _lblLedgerTitle = string.Empty;
@@ -134,12 +133,10 @@ public partial class TiersDetailViewModel : BaseViewModel
 
     public ObservableCollection<ClientLedgerDisplayRow> LedgerRows { get; } = [];
     public ObservableCollection<TypeTiers> Types { get; } = [];
-    public ObservableCollection<CategorieTiers> Categories { get; } = [CategorieTiers.Officiel, CategorieTiers.Comptoir];
     public ObservableCollection<ModePaiement> BulkPayModes { get; } = [];
 
     [ObservableProperty] private int? _tiersId;
     [ObservableProperty] private TypeTiers _type = TypeTiers.Client;
-    [ObservableProperty] private CategorieTiers _categorie = CategorieTiers.Officiel;
     [ObservableProperty] private string _nom = string.Empty;
     [ObservableProperty] private string _ice = string.Empty;
     [ObservableProperty] private string _adresse = string.Empty;
@@ -166,7 +163,6 @@ public partial class TiersDetailViewModel : BaseViewModel
         LblMaxCredit = _locale.T("Lbl_MaxCredit");
         ChkActif = _locale.T("Lbl_Actif");
         BtnSave = _locale.T("Btn_Save");
-        LblCategorie = _locale.T("Lbl_CategorieTiers");
         UpdateShowMaxCredit();
         LblLedgerTitle = _returnScope == TiersListScope.Fournisseurs
             ? _locale.T("SupplierLedger_Title")
@@ -248,7 +244,6 @@ public partial class TiersDetailViewModel : BaseViewModel
             ConditionsPaiement = string.Empty;
             MaxCreditText = string.Empty;
             Type = returnScope == TiersListScope.Fournisseurs ? TypeTiers.Fournisseur : TypeTiers.Client;
-            Categorie = CategorieTiers.Officiel;
             Actif = true;
             UpdateShowMaxCredit();
             UpdateShowBulkPay();
@@ -276,8 +271,6 @@ public partial class TiersDetailViewModel : BaseViewModel
             Type = t.Type;
             if (!Types.Contains(Type))
                 Types.Add(Type);
-
-            Categorie = t.Categorie;
             Nom = t.Nom;
             Ice = t.ICE;
             Adresse = t.Adresse;
@@ -652,7 +645,6 @@ public partial class TiersDetailViewModel : BaseViewModel
                 var t = new Models.Tiers
                 {
                     Type = Type,
-                    Categorie = Categorie,
                     Nom = Nom.Trim(),
                     ICE = Ice.Trim(),
                     Adresse = Adresse.Trim(),
@@ -671,7 +663,6 @@ public partial class TiersDetailViewModel : BaseViewModel
             {
                 var t = await db.Tiers.FirstAsync(x => x.Id == TiersId, cancellationToken);
                 t.Type = Type;
-                t.Categorie = Categorie;
                 t.Nom = Nom.Trim();
                 t.ICE = Ice.Trim();
                 t.Adresse = Adresse.Trim();
