@@ -51,6 +51,12 @@ public partial class App : Application
             catch (SqliteException ex) when (
                 ex.SqliteErrorCode == 1 &&
                 ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase)) { }
+            catch (Exception ex)
+            {
+                // Surface migration/schema failures instead of exiting silently.
+                Console.Error.WriteLine(ex);
+                throw;
+            }
             finally { db?.Dispose(); }
 
             var mainVm = Services.GetRequiredService<MainWindowViewModel>();
