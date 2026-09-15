@@ -273,13 +273,13 @@ public partial class BLEditViewModel : BaseViewModel
     public ClientSoldeDisplay ClientSolde => _clientSolde;
 
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
-    [ObservableProperty] private DateTimeOffset _dateEcheance = new(DateTime.Today.AddDays(30));
+    [ObservableProperty] private DateTime _date = DateTime.Today;
+    [ObservableProperty] private DateTime _dateEcheance = DateTime.Today.AddDays(30);
     [ObservableProperty] private bool _estPayee;
     [ObservableProperty] private decimal _remiseGlobale;
     [ObservableProperty] private decimal _montantPaye;
     [ObservableProperty] private decimal _paiementMontant;
-    [ObservableProperty] private DateTimeOffset _paiementDate = new(DateTime.Today);
+    [ObservableProperty] private DateTime _paiementDate = DateTime.Today;
     [ObservableProperty] private ModePaiement _paiementMode = ModePaiement.Especes;
     [ObservableProperty] private string _paiementReference = string.Empty;
     [ObservableProperty] private string _note = string.Empty;
@@ -363,7 +363,7 @@ public partial class BLEditViewModel : BaseViewModel
                 BlId.Value,
                 row.Id,
                 row.Montant,
-                row.Date.DateTime,
+                row.Date,
                 row.Mode,
                 row.Reference,
                 cancellationToken);
@@ -494,7 +494,7 @@ public partial class BLEditViewModel : BaseViewModel
         {
             Numero = "(brouillon)";
             ClientId = Clients.FirstOrDefault()?.Id ?? 0;
-            Date = new DateTimeOffset(DateTime.Today);
+            Date = DateTime.Today;
             DateEcheance = Date.AddDays(30);
             EstPayee = false;
             RemiseGlobale = 0;
@@ -526,8 +526,8 @@ public partial class BLEditViewModel : BaseViewModel
         UpdateBccLabel();
         Numero = b.Numero;
         ClientId = b.ClientId;
-        Date = new DateTimeOffset(b.Date);
-        DateEcheance = new DateTimeOffset(b.DateEcheance == default ? b.Date.AddDays(30) : b.DateEcheance);
+        Date = b.Date;
+        DateEcheance = b.DateEcheance == default ? b.Date.AddDays(30) : b.DateEcheance;
         EstPayee = b.EstPayee;
         RemiseGlobale = b.RemiseGlobale;
         Note = userNote;
@@ -582,7 +582,7 @@ public partial class BLEditViewModel : BaseViewModel
 
         ClientId = bcc.ClientId;
         DevisId = bcc.DevisId;
-        Date = new DateTimeOffset(DateTime.Today);
+        Date = DateTime.Today;
         DateEcheance = Date.AddDays(30);
         EstPayee = false;
         RemiseGlobale = 0;
@@ -630,7 +630,7 @@ public partial class BLEditViewModel : BaseViewModel
         var d = await db.Devis.Include(x => x.Lignes).FirstAsync(x => x.Id == devisId, cancellationToken);
         DevisId = d.Id;
         ClientId = d.ClientId;
-        Date = new DateTimeOffset(DateTime.Today);
+        Date = DateTime.Today;
         DateEcheance = Date.AddDays(30);
         EstPayee = false;
         RemiseGlobale = 0;
@@ -863,8 +863,8 @@ public partial class BLEditViewModel : BaseViewModel
                     Numero = num,
                     ClientId = ClientId,
                     DevisId = DevisId,
-                    Date = Date.DateTime,
-                    DateEcheance = DateEcheance.DateTime,
+                    Date = Date,
+                    DateEcheance = DateEcheance,
                     EstPayee = EstPayee,
                     RemiseGlobale = RemiseGlobale,
                     Note = BonCommandeReferenceStorage.Format(BonCommandeReference, Note),
@@ -894,8 +894,8 @@ public partial class BLEditViewModel : BaseViewModel
                 entity = await db.BonsLivraison.Include(b => b.Lignes).FirstAsync(b => b.Id == BlId, cancellationToken);
                 entity.ClientId = ClientId;
                 entity.DevisId = DevisId;
-                entity.Date = Date.DateTime;
-                entity.DateEcheance = DateEcheance.DateTime;
+                entity.Date = Date;
+                entity.DateEcheance = DateEcheance;
                 entity.EstPayee = EstPayee;
                 entity.RemiseGlobale = RemiseGlobale;
                 entity.Note = BonCommandeReferenceStorage.Format(BonCommandeReference, Note);
@@ -967,14 +967,14 @@ public partial class BLEditViewModel : BaseViewModel
             await _workflow.AddPaiementAsync(BlId.Value, new PaiementBonLivraison
             {
                 Montant = PaiementMontant,
-                Date = PaiementDate.DateTime,
+                Date = PaiementDate,
                 Mode = PaiementMode,
                 Reference = PaiementReference,
                 CreatedByUserId = _session.UserId
             }, cancellationToken);
             PaiementMontant = 0;
             PaiementReference = string.Empty;
-            PaiementDate = new DateTimeOffset(DateTime.Today);
+            PaiementDate = DateTime.Today;
             await LoadAsync(BlId, cancellationToken);
         }
         catch (Exception ex)

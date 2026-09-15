@@ -54,7 +54,7 @@
                    VerticalAlignment="Center"
                    IsVisible="{Binding ClientSolde.IsVisible}"/>
         <TextBlock Grid.Column="8" Text="{Binding LblDateBc}" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,10,0"/>
-        <DatePicker Grid.Column="9" SelectedDate="{Binding Date}" VerticalAlignment="Center"/>
+        <CalendarDatePicker Grid.Column="9" SelectedDate="{Binding Date}" VerticalAlignment="Center"/>
       </Grid>
       <StackPanel Orientation="Horizontal" Spacing="8">
         <TextBlock Text="{Binding LblAddProduct}" VerticalAlignment="Center" Opacity="0.7"/>

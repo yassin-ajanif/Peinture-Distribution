@@ -103,8 +103,8 @@ public partial class FactureEditViewModel : BaseViewModel
     [ObservableProperty] private int _clientId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedClient;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
-    [ObservableProperty] private DateTimeOffset _dateEcheance = new(DateTime.Today.AddDays(30));
+    [ObservableProperty] private DateTime _date = DateTime.Today;
+    [ObservableProperty] private DateTime _dateEcheance = DateTime.Today.AddDays(30);
     [ObservableProperty] private bool _estPayee;
     [ObservableProperty] private decimal _remiseGlobale;
     [ObservableProperty] private string _note = string.Empty;
@@ -116,7 +116,7 @@ public partial class FactureEditViewModel : BaseViewModel
     [ObservableProperty] private bool _canEditDraft;
 
     [ObservableProperty] private decimal _paiementMontant;
-    [ObservableProperty] private DateTimeOffset _paiementDate = new(DateTime.Today);
+    [ObservableProperty] private DateTime _paiementDate = DateTime.Today;
     [ObservableProperty] private ModePaiement _paiementMode = ModePaiement.Especes;
     [ObservableProperty] private string _paiementReference = string.Empty;
     [ObservableProperty] private FactureLineRow? _selectedLine;
@@ -327,7 +327,7 @@ public partial class FactureEditViewModel : BaseViewModel
                 FactureId.Value,
                 row.Id,
                 row.Montant,
-                row.Date.DateTime,
+                row.Date,
                 row.Mode,
                 row.Reference,
                 cancellationToken);
@@ -526,7 +526,7 @@ public partial class FactureEditViewModel : BaseViewModel
         {
             Numero = _locale.T("Fact_NewNumPlaceholder");
             ClientId = Clients.FirstOrDefault()?.Id ?? 0;
-            Date = new DateTimeOffset(DateTime.Today);
+            Date = DateTime.Today;
             DateEcheance = Date.AddDays(30);
             EstPayee = false;
             CanEditDraft = true;
@@ -558,8 +558,8 @@ public partial class FactureEditViewModel : BaseViewModel
         DevisId = f.DevisId;
         Numero = f.Numero;
         ClientId = f.ClientId;
-        Date = new DateTimeOffset(f.Date);
-        DateEcheance = new DateTimeOffset(f.DateEcheance);
+        Date = f.Date;
+        DateEcheance = f.DateEcheance;
         EstPayee = f.EstPayee;
         RemiseGlobale = f.RemiseGlobale;
         Note = f.Note;
@@ -722,7 +722,7 @@ public partial class FactureEditViewModel : BaseViewModel
         Lignes.Clear();
         DevisId = null;
         FactureId = null;
-        Date = new DateTimeOffset(DateTime.Today);
+        Date = DateTime.Today;
         DateEcheance = Date.AddDays(30);
         EstPayee = false;
         Numero = _locale.T("Fact_NewNumPlaceholder");
@@ -766,7 +766,7 @@ public partial class FactureEditViewModel : BaseViewModel
         BonCommandeReference = string.Empty;
         FactureId = null;
         ClientId = d.ClientId;
-        Date = new DateTimeOffset(DateTime.Today);
+        Date = DateTime.Today;
         DateEcheance = Date.AddDays(30);
         EstPayee = false;
         Numero = _locale.T("Fact_NewNumPlaceholder");
@@ -888,8 +888,8 @@ public partial class FactureEditViewModel : BaseViewModel
                     Numero = num,
                     ClientId = ClientId,
                     DevisId = DevisId,
-                    Date = Date.DateTime,
-                    DateEcheance = DateEcheance.DateTime,
+                    Date = Date,
+                    DateEcheance = DateEcheance,
                     EstPayee = EstPayee,
                     RemiseGlobale = RemiseGlobale,
                     Note = Note,
@@ -933,8 +933,8 @@ public partial class FactureEditViewModel : BaseViewModel
 
                 entity.ClientId = ClientId;
                 entity.DevisId = DevisId;
-                entity.Date = Date.DateTime;
-                entity.DateEcheance = DateEcheance.DateTime;
+                entity.Date = Date;
+                entity.DateEcheance = DateEcheance;
                 entity.EstPayee = EstPayee;
                 entity.RemiseGlobale = RemiseGlobale;
                 entity.Note = Note;
@@ -1015,14 +1015,14 @@ public partial class FactureEditViewModel : BaseViewModel
             await _factureWorkflow.AddPaiementAsync(FactureId.Value, new Paiement
             {
                 Montant = PaiementMontant,
-                Date = PaiementDate.DateTime,
+                Date = PaiementDate,
                 Mode = PaiementMode,
                 Reference = PaiementReference,
                 CreatedByUserId = _session.UserId
             }, cancellationToken);
             PaiementMontant = 0;
             PaiementReference = string.Empty;
-            PaiementDate = new DateTimeOffset(DateTime.Today);
+            PaiementDate = DateTime.Today;
             await LoadAsync(FactureId, cancellationToken);
         }
         catch (Exception ex)

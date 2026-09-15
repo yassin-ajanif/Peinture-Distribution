@@ -155,8 +155,8 @@ public partial class DevisEditViewModel : BaseViewModel
     [ObservableProperty] private int _clientId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedClient;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
-    [ObservableProperty] private DateTimeOffset _dateValidite = new(DateTime.Today.AddDays(30));
+    [ObservableProperty] private DateTime _date = DateTime.Today;
+    [ObservableProperty] private DateTime _dateValidite = DateTime.Today.AddDays(30);
     [ObservableProperty] private decimal _remiseGlobale;
     [ObservableProperty] private string _note = string.Empty;
     [ObservableProperty] private decimal _totalHt;
@@ -408,8 +408,8 @@ public partial class DevisEditViewModel : BaseViewModel
 
         if (id == null)
         {
-            Date = new DateTimeOffset(DateTime.Today);
-            DateValidite = new DateTimeOffset(DateTime.Today.AddDays(cfg.DevisValiditeJoursDefaut));
+            Date = DateTime.Today;
+            DateValidite = DateTime.Today.AddDays(cfg.DevisValiditeJoursDefaut);
             Numero = "(brouillon)";
             ClientId = Clients.FirstOrDefault()?.Id ?? 0;
             IsReadOnly = false;
@@ -422,8 +422,8 @@ public partial class DevisEditViewModel : BaseViewModel
         var d = await db.Devis.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
         Numero = d.Numero;
         ClientId = d.ClientId;
-        Date = new DateTimeOffset(d.Date);
-        DateValidite = new DateTimeOffset(d.DateValidite);
+        Date = d.Date;
+        DateValidite = d.DateValidite;
         RemiseGlobale = d.RemiseGlobale;
         Note = d.Note;
         foreach (var l in d.Lignes)
@@ -445,7 +445,7 @@ public partial class DevisEditViewModel : BaseViewModel
             Lignes.Add(row);
         }
 
-        IsExpire = DateValidite.DateTime.Date < DateTime.Today;
+        IsExpire = DateValidite.Date < DateTime.Today;
         IsReadOnly = false;
         Title = _locale.Tf("Devis_TitleNum", Numero);
         RefreshTotals();
@@ -512,8 +512,8 @@ public partial class DevisEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     ClientId = ClientId,
-                    Date = Date.DateTime,
-                    DateValidite = DateValidite.DateTime,
+                    Date = Date,
+                    DateValidite = DateValidite,
                     RemiseGlobale = RemiseGlobale,
                     Note = Note,
                     CreatedByUserId = _session.UserId
@@ -540,8 +540,8 @@ public partial class DevisEditViewModel : BaseViewModel
             {
                 entity = await db.Devis.Include(d => d.Lignes).FirstAsync(d => d.Id == DevisId, cancellationToken);
                 entity.ClientId = ClientId;
-                entity.Date = Date.DateTime;
-                entity.DateValidite = DateValidite.DateTime;
+                entity.Date = Date;
+                entity.DateValidite = DateValidite;
                 entity.RemiseGlobale = RemiseGlobale;
                 entity.Note = Note;
                 db.DevisLignes.RemoveRange(entity.Lignes);

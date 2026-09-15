@@ -225,7 +225,7 @@ public partial class BREditViewModel : BaseViewModel
     [ObservableProperty] private int _fournisseurId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedFournisseur;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
+    [ObservableProperty] private DateTime _date = DateTime.Today;
     [ObservableProperty] private string _note = string.Empty;
     [ObservableProperty] private bool _isReadOnly;
     [ObservableProperty] private BRLineRow? _selectedLine;
@@ -354,7 +354,7 @@ public partial class BREditViewModel : BaseViewModel
         var b = await db.BonsReception.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
         Numero = b.Numero;
         FournisseurId = b.FournisseurId;
-        Date = new DateTimeOffset(b.Date);
+        Date = b.Date;
         Note = b.Note;
         foreach (var l in b.Lignes)
         {
@@ -400,7 +400,7 @@ public partial class BREditViewModel : BaseViewModel
         foreach (var p in produits) Produits.Add(p);
 
         FournisseurId = bc.FournisseurId;
-        Date = new DateTimeOffset(DateTime.Today);
+        Date = DateTime.Today;
         Note = string.Empty;
         Numero = "(brouillon)";
         foreach (var l in bc.Lignes.OrderBy(x => x.Id))
@@ -500,7 +500,7 @@ public partial class BREditViewModel : BaseViewModel
                     Numero = num,
                     BonCommandeId = _sourceBonCommandeId,
                     FournisseurId = FournisseurId,
-                    Date = Date.DateTime,
+                    Date = Date,
                     Note = Note,
                     CreatedByUserId = _session.UserId
                 };
@@ -526,7 +526,7 @@ public partial class BREditViewModel : BaseViewModel
             {
                 entity = await db.BonsReception.Include(b => b.Lignes).FirstAsync(b => b.Id == BrId, cancellationToken);
                 entity.FournisseurId = FournisseurId;
-                entity.Date = Date.DateTime;
+                entity.Date = Date;
                 entity.Note = Note;
                 db.BonReceptionLignes.RemoveRange(entity.Lignes);
                 foreach (var l in Lignes)

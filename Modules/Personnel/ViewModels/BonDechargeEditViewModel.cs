@@ -67,7 +67,7 @@ public partial class BonDechargeEditViewModel : BaseViewModel
 
     [ObservableProperty] private int? _bonDechargeId;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
+    [ObservableProperty] private DateTime _date = DateTime.Today;
     [ObservableProperty] private int _assignedToUserId;
     [ObservableProperty] private User? _selectedAssignedUser;
     [ObservableProperty] private int _depotLocationId;
@@ -270,7 +270,7 @@ public partial class BonDechargeEditViewModel : BaseViewModel
         {
             var defaultDepot = await _locations.GetOrCreateDefaultDepotAsync(db, cancellationToken);
             Numero = "(nouveau)";
-            Date = new DateTimeOffset(DateTime.Today);
+            Date = DateTime.Today;
             Note = string.Empty;
             AssignedToUserId = Users.FirstOrDefault()?.Id ?? 0;
             _suppressUserSync = true;
@@ -289,7 +289,7 @@ public partial class BonDechargeEditViewModel : BaseViewModel
         SelectedAssignedUser = Users.FirstOrDefault(u => u.Id == b.AssignedToUserId);
         _suppressUserSync = false;
         SelectDepot(b.DepotLocationId);
-        Date = new DateTimeOffset(b.Date);
+        Date = b.Date;
         Note = b.Note;
         foreach (var l in b.Lignes)
         {
@@ -398,7 +398,7 @@ public partial class BonDechargeEditViewModel : BaseViewModel
                     Numero = num,
                     AssignedToUserId = AssignedToUserId,
                     DepotLocationId = DepotLocationId,
-                    Date = Date.DateTime,
+                    Date = Date,
                     Note = Note
                 };
                 foreach (var l in Lignes.Where(x => x.ProduitId > 0 && x.Quantite > 0))
@@ -423,7 +423,7 @@ public partial class BonDechargeEditViewModel : BaseViewModel
                     .FirstAsync(b => b.Id == BonDechargeId, cancellationToken);
                 entity.AssignedToUserId = AssignedToUserId;
                 entity.DepotLocationId = DepotLocationId;
-                entity.Date = Date.DateTime;
+                entity.Date = Date;
                 entity.Note = Note;
                 db.BonDechargeLignes.RemoveRange(entity.Lignes);
                 entity.Lignes.Clear();

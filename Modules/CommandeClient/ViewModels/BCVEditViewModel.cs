@@ -178,7 +178,7 @@ public partial class BCVEditViewModel : BaseViewModel
     [ObservableProperty] private int _clientId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedClient;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
+    [ObservableProperty] private DateTime _date = DateTime.Today;
     [ObservableProperty] private string _note = string.Empty;
     [ObservableProperty] private BCVLineRow? _selectedLine;
 
@@ -358,7 +358,7 @@ public partial class BCVEditViewModel : BaseViewModel
         var b = await db.BonsCommandeClient.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
         Numero = b.Numero;
         ClientId = b.ClientId;
-        Date = new DateTimeOffset(b.Date);
+        Date = b.Date;
         Note = b.Note;
         foreach (var l in b.Lignes)
         {
@@ -441,7 +441,7 @@ public partial class BCVEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     ClientId = ClientId,
-                    Date = Date.DateTime,
+                    Date = Date,
                     Note = Note,
                     CreatedByUserId = _session.UserId
                 };
@@ -467,7 +467,7 @@ public partial class BCVEditViewModel : BaseViewModel
             {
                 entity = await db.BonsCommandeClient.Include(b => b.Lignes).FirstAsync(b => b.Id == BccId, cancellationToken);
                 entity.ClientId = ClientId;
-                entity.Date = Date.DateTime;
+                entity.Date = Date;
                 entity.Note = Note;
                 db.BonCommandeClientLignes.RemoveRange(entity.Lignes);
                 foreach (var l in Lignes)

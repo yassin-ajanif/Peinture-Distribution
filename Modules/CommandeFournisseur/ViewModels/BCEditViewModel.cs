@@ -169,7 +169,7 @@ public partial class BCEditViewModel : BaseViewModel
     [ObservableProperty] private int _fournisseurId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedFournisseur;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
+    [ObservableProperty] private DateTime _date = DateTime.Today;
     [ObservableProperty] private string _note = string.Empty;
     [ObservableProperty] private BCLineRow? _selectedLine;
 
@@ -336,7 +336,7 @@ public partial class BCEditViewModel : BaseViewModel
         var b = await db.BonsCommande.Include(x => x.Lignes).FirstAsync(x => x.Id == id, cancellationToken);
         Numero = b.Numero;
         FournisseurId = b.FournisseurId;
-        Date = new DateTimeOffset(b.Date);
+        Date = b.Date;
         Note = b.Note;
         foreach (var l in b.Lignes)
         {
@@ -419,7 +419,7 @@ public partial class BCEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     FournisseurId = FournisseurId,
-                    Date = Date.DateTime,
+                    Date = Date,
                     Note = Note,
                     CreatedByUserId = _session.UserId
                 };
@@ -445,7 +445,7 @@ public partial class BCEditViewModel : BaseViewModel
             {
                 entity = await db.BonsCommande.Include(b => b.Lignes).FirstAsync(b => b.Id == BcId, cancellationToken);
                 entity.FournisseurId = FournisseurId;
-                entity.Date = Date.DateTime;
+                entity.Date = Date;
                 entity.Note = Note;
                 db.BonCommandeLignes.RemoveRange(entity.Lignes);
                 foreach (var l in Lignes)

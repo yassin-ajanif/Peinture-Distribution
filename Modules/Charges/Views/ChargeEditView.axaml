@@ -32,7 +32,7 @@
             </ComboBox>
 
             <TextBlock Text="{Binding LblDate}" Opacity="0.7"/>
-            <DatePicker SelectedDate="{Binding Date}" HorizontalAlignment="Left"/>
+            <CalendarDatePicker SelectedDate="{Binding Date}" HorizontalAlignment="Left"/>
 
             <TextBlock Text="{Binding LblLibelle}" Opacity="0.7"/>
             <TextBox Watermark="{Binding WmLibelle}" Text="{Binding Libelle, Mode=TwoWay}"/>

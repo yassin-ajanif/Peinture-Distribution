@@ -45,7 +45,7 @@ public partial class ChargeEditViewModel : BaseViewModel
     [ObservableProperty] private int? _chargeId;
     [ObservableProperty] private int _typeChargeId;
     [ObservableProperty] private TypeCharge? _selectedType;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
+    [ObservableProperty] private DateTime _date = DateTime.Today;
     [ObservableProperty] private string _libelle = string.Empty;
     [ObservableProperty] private decimal _montantTtc;
     [ObservableProperty] private string _note = string.Empty;
@@ -124,7 +124,7 @@ public partial class ChargeEditViewModel : BaseViewModel
         if (id == null)
         {
             await ReloadTypesAsync(cancellationToken);
-            Date = new DateTimeOffset(DateTime.Today);
+            Date = DateTime.Today;
             Libelle = string.Empty;
             MontantTtc = 0;
             Note = string.Empty;
@@ -140,7 +140,7 @@ public partial class ChargeEditViewModel : BaseViewModel
         await ReloadTypesAsync(cancellationToken);
         SelectedType = TypesDisponibles.FirstOrDefault(t => t.Id == c.TypeChargeId)
             ?? TypesGestion.FirstOrDefault(t => t.Id == c.TypeChargeId);
-        Date = new DateTimeOffset(c.Date);
+        Date = c.Date;
         Libelle = c.Libelle;
         MontantTtc = c.MontantTtc;
         Note = c.Note;
@@ -209,7 +209,7 @@ public partial class ChargeEditViewModel : BaseViewModel
                 entity = new Charge
                 {
                     TypeChargeId = TypeChargeId,
-                    Date = Date.DateTime.Date,
+                    Date = Date.Date,
                     Libelle = Libelle.Trim(),
                     MontantTtc = MontantTtc,
                     Note = Note?.Trim() ?? string.Empty,
@@ -221,7 +221,7 @@ public partial class ChargeEditViewModel : BaseViewModel
             {
                 entity = await db.Charges.FirstAsync(c => c.Id == ChargeId, cancellationToken);
                 entity.TypeChargeId = TypeChargeId;
-                entity.Date = Date.DateTime.Date;
+                entity.Date = Date.Date;
                 entity.Libelle = Libelle.Trim();
                 entity.MontantTtc = MontantTtc;
                 entity.Note = Note?.Trim() ?? string.Empty;

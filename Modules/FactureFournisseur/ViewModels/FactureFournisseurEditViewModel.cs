@@ -90,8 +90,8 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
     [ObservableProperty] private int _fournisseurId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedFournisseur;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
-    [ObservableProperty] private DateTimeOffset _dateEcheance = new(DateTime.Today.AddDays(30));
+    [ObservableProperty] private DateTime _date = DateTime.Today;
+    [ObservableProperty] private DateTime _dateEcheance = DateTime.Today.AddDays(30);
     [ObservableProperty] private bool _estPayee;
     [ObservableProperty] private decimal _remiseGlobale;
     [ObservableProperty] private string _note = string.Empty;
@@ -102,7 +102,7 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
     [ObservableProperty] private bool _canEditDraft;
 
     [ObservableProperty] private decimal _paiementMontant;
-    [ObservableProperty] private DateTimeOffset _paiementDate = new(DateTime.Today);
+    [ObservableProperty] private DateTime _paiementDate = DateTime.Today;
     [ObservableProperty] private ModePaiement _paiementMode = ModePaiement.Especes;
     [ObservableProperty] private string _paiementReference = string.Empty;
     [ObservableProperty] private FactureFournisseurLineRow? _selectedLine;
@@ -296,7 +296,7 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
                 FactureFournisseurId.Value,
                 row.Id,
                 row.Montant,
-                row.Date.DateTime,
+                row.Date,
                 row.Mode,
                 row.Reference,
                 cancellationToken);
@@ -484,7 +484,7 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
         {
             Numero = _locale.T("Faf_NewNumPlaceholder");
             FournisseurId = Fournisseurs.FirstOrDefault()?.Id ?? 0;
-            Date = new DateTimeOffset(DateTime.Today);
+            Date = DateTime.Today;
             DateEcheance = Date.AddDays(30);
             EstPayee = false;
             CanEditDraft = true;
@@ -504,8 +504,8 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
             LinkedBrs.Add(new LinkedBrRow(br.Id, br.Numero, br.Date));
         Numero = f.Numero;
         FournisseurId = f.FournisseurId;
-        Date = new DateTimeOffset(f.Date);
-        DateEcheance = new DateTimeOffset(f.DateEcheance);
+        Date = f.Date;
+        DateEcheance = f.DateEcheance;
         EstPayee = f.EstPayee;
         RemiseGlobale = f.RemiseGlobale;
         Note = f.Note;
@@ -621,7 +621,7 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
         LinkedBrs.Clear();
         Lignes.Clear();
         FactureFournisseurId = null;
-        Date = new DateTimeOffset(DateTime.Today);
+        Date = DateTime.Today;
         DateEcheance = Date.AddDays(30);
         EstPayee = false;
         Numero = _locale.T("Faf_NewNumPlaceholder");
@@ -728,8 +728,8 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     FournisseurId = FournisseurId,
-                    Date = Date.DateTime,
-                    DateEcheance = DateEcheance.DateTime,
+                    Date = Date,
+                    DateEcheance = DateEcheance,
                     EstPayee = EstPayee,
                     RemiseGlobale = RemiseGlobale,
                     Note = Note,
@@ -769,8 +769,8 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
                 entity = await db.FacturesFournisseurs.Include(f => f.Lignes).FirstAsync(f => f.Id == FactureFournisseurId, cancellationToken);
 
                 entity.FournisseurId = FournisseurId;
-                entity.Date = Date.DateTime;
-                entity.DateEcheance = DateEcheance.DateTime;
+                entity.Date = Date;
+                entity.DateEcheance = DateEcheance;
                 entity.EstPayee = EstPayee;
                 entity.RemiseGlobale = RemiseGlobale;
                 entity.Note = Note;
@@ -848,14 +848,14 @@ public partial class FactureFournisseurEditViewModel : BaseViewModel
             await _factureFournisseurWorkflow.AddPaiementAsync(FactureFournisseurId.Value, new PaiementFournisseur
             {
                 Montant = PaiementMontant,
-                Date = PaiementDate.DateTime,
+                Date = PaiementDate,
                 Mode = PaiementMode,
                 Reference = PaiementReference,
                 CreatedByUserId = _session.UserId
             }, cancellationToken);
             PaiementMontant = 0;
             PaiementReference = string.Empty;
-            PaiementDate = new DateTimeOffset(DateTime.Today);
+            PaiementDate = DateTime.Today;
             await LoadAsync(FactureFournisseurId, cancellationToken);
         }
         catch (Exception ex)

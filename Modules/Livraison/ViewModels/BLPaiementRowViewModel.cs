@@ -11,7 +11,7 @@ public partial class BLPaiementRowViewModel : ObservableObject
     private readonly BLEditViewModel _owner;
 
     private decimal _snapshotMontant;
-    private DateTimeOffset _snapshotDate;
+    private DateTime _snapshotDate;
     private ModePaiement _snapshotMode;
     private string _snapshotReference = string.Empty;
 
@@ -22,7 +22,7 @@ public partial class BLPaiementRowViewModel : ObservableObject
 
     [ObservableProperty] private bool _isEditing;
     [ObservableProperty] private decimal _montant;
-    [ObservableProperty] private DateTimeOffset _date;
+    [ObservableProperty] private DateTime _date;
     [ObservableProperty] private ModePaiement _mode;
     [ObservableProperty] private string _reference = string.Empty;
 
@@ -33,7 +33,7 @@ public partial class BLPaiementRowViewModel : ObservableObject
         _owner = owner;
         Id = p.Id;
         Montant = p.Montant;
-        Date = new DateTimeOffset(p.Date);
+        Date = p.Date;
         Mode = p.Mode;
         Reference = p.Reference;
     }

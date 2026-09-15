@@ -376,13 +376,13 @@ public sealed class DialogService : IDialogService
 
         var presets = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center };
 
-        var dpFrom = new DatePicker();
-        var dpTo = new DatePicker();
+        var dpFrom = new CalendarDatePicker { Width = 150, MinWidth = 140 };
+        var dpTo = new CalendarDatePicker { Width = 150, MinWidth = 140 };
 
         void SetRange(DateTime from, DateTime to)
         {
-            dpFrom.SelectedDate = new DateTimeOffset(from.Year, from.Month, from.Day, 0, 0, 0, TimeSpan.Zero);
-            dpTo.SelectedDate = new DateTimeOffset(to.Year, to.Month, to.Day, 0, 0, 0, TimeSpan.Zero);
+            dpFrom.SelectedDate = from.Date;
+            dpTo.SelectedDate = to.Date;
         }
 
         var btnToday = new Button { Content = "Aujourd'hui" };
@@ -414,13 +414,11 @@ public sealed class DialogService : IDialogService
         var dateGrid = new StackPanel { Spacing = 8 };
         var fromRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         fromRow.Children.Add(new TextBlock { Text = "Du:", VerticalAlignment = VerticalAlignment.Center, MinWidth = 30 });
-        dpFrom.MinWidth = 180;
         fromRow.Children.Add(dpFrom);
         dateGrid.Children.Add(fromRow);
 
         var toRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         toRow.Children.Add(new TextBlock { Text = "Au:", VerticalAlignment = VerticalAlignment.Center, MinWidth = 30 });
-        dpTo.MinWidth = 180;
         toRow.Children.Add(dpTo);
         dateGrid.Children.Add(toRow);
         panel.Children.Add(dateGrid);
@@ -440,7 +438,7 @@ public sealed class DialogService : IDialogService
             if (!dpFrom.SelectedDate.HasValue && !dpTo.SelectedDate.HasValue)
                 result = (DateTime.MinValue, DateTime.MinValue);
             else if (dpFrom.SelectedDate.HasValue && dpTo.SelectedDate.HasValue)
-                result = (dpFrom.SelectedDate.Value.DateTime.Date, dpTo.SelectedDate.Value.DateTime.Date);
+                result = (dpFrom.SelectedDate.Value.Date, dpTo.SelectedDate.Value.Date);
             w.Close();
         };
         actions.Children.Add(btnClear);

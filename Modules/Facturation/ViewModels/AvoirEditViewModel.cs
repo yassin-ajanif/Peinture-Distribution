@@ -132,7 +132,7 @@ public partial class AvoirEditViewModel : BaseViewModel
     [ObservableProperty] private int _clientId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedClient;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
+    [ObservableProperty] private DateTime _date = DateTime.Today;
     [ObservableProperty] private string _motif = string.Empty;
     [ObservableProperty] private bool _retourMarchandise = true;
     [ObservableProperty] private decimal _totalHt;
@@ -386,7 +386,7 @@ public partial class AvoirEditViewModel : BaseViewModel
         ClientId = Clients.FirstOrDefault()?.Id ?? 0;
         Lignes.Clear();
         Numero = _locale.T("Avoir_DraftPlaceholder");
-        Date = new DateTimeOffset(DateTime.Today);
+        Date = DateTime.Today;
         Motif = string.Empty;
         RetourMarchandise = true;
         CanEditDraft = true;
@@ -454,7 +454,7 @@ public partial class AvoirEditViewModel : BaseViewModel
         FactureId = avoir.FactureId;
         ClientId = avoir.ClientId;
         Numero = avoir.Numero;
-        Date = new DateTimeOffset(avoir.Date);
+        Date = avoir.Date;
         Motif = avoir.Motif;
         RetourMarchandise = avoir.RetourMarchandise;
         Lignes.Clear();
@@ -524,7 +524,7 @@ public partial class AvoirEditViewModel : BaseViewModel
                     Numero = num,
                     FactureId = FactureId,
                     ClientId = ClientId,
-                    Date = Date.DateTime,
+                    Date = Date,
                     Motif = Motif,
                     RetourMarchandise = RetourMarchandise,
                     CreatedByUserId = _session.UserId
@@ -554,7 +554,7 @@ public partial class AvoirEditViewModel : BaseViewModel
                 entity = await db.Avoirs.Include(a => a.Lignes).FirstAsync(a => a.Id == AvoirId, cancellationToken);
                 entity.FactureId = FactureId;
                 entity.ClientId = ClientId;
-                entity.Date = Date.DateTime;
+                entity.Date = Date;
                 entity.Motif = Motif;
                 entity.RetourMarchandise = RetourMarchandise;
                 db.AvoirLignes.RemoveRange(entity.Lignes);

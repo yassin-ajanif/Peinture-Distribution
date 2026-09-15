@@ -82,7 +82,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
     [ObservableProperty] private int _fournisseurId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedFournisseur;
     [ObservableProperty] private string _numero = string.Empty;
-    [ObservableProperty] private DateTimeOffset _date = new(DateTime.Today);
+    [ObservableProperty] private DateTime _date = DateTime.Today;
     [ObservableProperty] private string _motif = string.Empty;
     [ObservableProperty] private bool _retourMarchandise = true;
     [ObservableProperty] private decimal _totalHt;
@@ -312,7 +312,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
         FournisseurId = Fournisseurs.FirstOrDefault()?.Id ?? 0;
         Lignes.Clear();
         Numero = _locale.T("Avf_DraftPlaceholder");
-        Date = new DateTimeOffset(DateTime.Today);
+        Date = DateTime.Today;
         Motif = string.Empty;
         RetourMarchandise = true;
         CanEditDraft = true;
@@ -330,7 +330,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
         AvoirFournisseurId = doc.Id;
         FournisseurId = doc.FournisseurId;
         Numero = doc.Numero;
-        Date = new DateTimeOffset(doc.Date);
+        Date = doc.Date;
         Motif = doc.Motif;
         RetourMarchandise = doc.RetourMarchandise;
         Lignes.Clear();
@@ -427,7 +427,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     FournisseurId = FournisseurId,
-                    Date = Date.DateTime,
+                    Date = Date,
                     Motif = Motif,
                     RetourMarchandise = RetourMarchandise,
                     CreatedByUserId = _session.UserId
@@ -457,7 +457,7 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
                 entity = await db.AvoirsFournisseurs.Include(x => x.Lignes)
                     .FirstAsync(x => x.Id == AvoirFournisseurId, cancellationToken);
                 entity.FournisseurId = FournisseurId;
-                entity.Date = Date.DateTime;
+                entity.Date = Date;
                 entity.Motif = Motif;
                 entity.RetourMarchandise = RetourMarchandise;
                 db.AvoirFournisseurLignes.RemoveRange(entity.Lignes);

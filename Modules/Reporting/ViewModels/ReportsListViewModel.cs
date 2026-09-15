@@ -30,8 +30,8 @@ public partial class ReportsListViewModel : BaseViewModel
         Pagination = new PaginationHelper(ApplyCurrentPage);
         DatePresets = new DatePresetChipsModel(_locale, (from, to) =>
         {
-            DateFrom = new DateTimeOffset(from);
-            DateTo = new DateTimeOffset(to);
+            DateFrom = from;
+            DateTo = to;
             LoadReportCommand.Execute(null);
         });
         DatePresets.SyncSelection(DateFrom.Date, DateTo.Date);
@@ -58,8 +58,8 @@ public partial class ReportsListViewModel : BaseViewModel
     [ObservableProperty] private string _btnProfitCharges = string.Empty;
 
     [ObservableProperty] private int _selectedReportIndex;
-    [ObservableProperty] private DateTimeOffset _dateFrom = new(DateTime.Today);
-    [ObservableProperty] private DateTimeOffset _dateTo = new(DateTime.Today);
+    [ObservableProperty] private DateTime _dateFrom = DateTime.Today;
+    [ObservableProperty] private DateTime _dateTo = DateTime.Today;
 
     [ObservableProperty] private bool _showSaleByProduct;
     [ObservableProperty] private bool _showSaleByCustomer;
@@ -180,10 +180,10 @@ public partial class ReportsListViewModel : BaseViewModel
         LoadReportCommand.Execute(null);
     }
 
-    partial void OnDateFromChanged(DateTimeOffset value) =>
+    partial void OnDateFromChanged(DateTime value) =>
         DatePresets.SyncSelection(value.Date, DateTo.Date);
 
-    partial void OnDateToChanged(DateTimeOffset value) =>
+    partial void OnDateToChanged(DateTime value) =>
         DatePresets.SyncSelection(DateFrom.Date, value.Date);
 
     [RelayCommand]
