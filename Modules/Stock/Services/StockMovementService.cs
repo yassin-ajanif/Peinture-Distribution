@@ -250,6 +250,82 @@ public sealed class StockMovementService : IStockMovementService
             createdByUserId,
             cancellationToken);
 
+    public async Task<IReadOnlyList<StockShortageItem>> GetOutboundShortagesAsync(
+        AppDbContext db,
+        int fromLocationId,
+        IEnumerable<(int ProduitId, decimal Quantite)> desiredOutboundLines,
+        string? origineType = null,
+        int? origineId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var desired = desiredOutboundLines
+            .Where(l => l.ProduitId > 0 && l.Quantite > 0)
+            .GroupBy(l => l.ProduitId)
+            .ToDictionary(g => g.Key, g => g.Sum(l => l.Quantite));
+
+        if (desired.Count == 0)
+            return [];
+
+        var location = await db.StockLocations.AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == fromLocationId, cancellationToken);
+        var locationName = location?.Nom ?? $"#{fromLocationId}";
+
+        Dictionary<int, decimal> alreadyOutbound = [];
+        if (!string.IsNullOrEmpty(origineType) && origineId is > 0)
+        {
+            var movements = await db.MouvementsStock.AsNoTracking()
+                .Where(m => m.OrigineType == origineType && m.OrigineId == origineId)
+                .ToListAsync(cancellationToken);
+
+            alreadyOutbound = movements
+                .GroupBy(m => m.ProduitId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => Math.Max(0m, -g.Sum(m => SignedImpactOnLocation(m, fromLocationId))));
+        }
+
+        var produitIds = desired.Keys.ToList();
+        var products = await db.Produits.AsNoTracking()
+            .Where(p => produitIds.Contains(p.Id))
+            .Select(p => new { p.Id, p.Reference, p.Designation })
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+        var shortages = new List<StockShortageItem>();
+        foreach (var (produitId, want) in desired.OrderBy(kv => kv.Key))
+        {
+            alreadyOutbound.TryGetValue(produitId, out var already);
+            var additional = want - already;
+            if (additional <= 0)
+                continue;
+
+            var available = await StockBalanceQueries.GetBalanceAsync(db, produitId, fromLocationId, cancellationToken);
+            if (available >= additional)
+                continue;
+
+            products.TryGetValue(produitId, out var p);
+            shortages.Add(new StockShortageItem(
+                produitId,
+                p?.Reference ?? $"#{produitId}",
+                p?.Designation ?? string.Empty,
+                locationName,
+                want,
+                available,
+                additional - available));
+        }
+
+        return shortages;
+    }
+
+    /// <summary>Positive when stock increases at location; negative when it decreases.</summary>
+    private static decimal SignedImpactOnLocation(MouvementStock m, int locationId)
+    {
+        if (m.ToLocationId == locationId && m.FromLocationId != locationId)
+            return Math.Abs(m.Quantite);
+        if (m.FromLocationId == locationId && m.ToLocationId != locationId)
+            return -Math.Abs(m.Quantite);
+        return 0m;
+    }
+
     private async Task SyncTransferDocumentStockAsync(
         AppDbContext db,
         string origineType,

@@ -629,6 +629,41 @@ public partial class BLEditViewModel : BaseViewModel
             && !await _dialog.ConfirmAsync(_locale.T("CreditLimit_WarnTitle"), creditWarning, cancellationToken))
             return;
 
+        await using (var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken))
+        {
+            var depot = await dbCheck.StockLocations.AsNoTracking()
+                .Where(l => !l.IsVirtual && l.Nom == GestionCommerciale.Modules.Stock.Models.StockLocation.DefaultDepotNom)
+                .Select(l => (int?)l.Id)
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? await dbCheck.StockLocations.AsNoTracking()
+                    .Where(l => !l.IsVirtual && l.Actif)
+                    .Select(l => (int?)l.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            if (depot is int depotId)
+            {
+                var stockLines = Lignes
+                    .Where(l => l.ProduitId > 0 && l.QuantiteLivree > 0)
+                    .Select(l => (l.ProduitId, l.QuantiteLivree));
+                var shortages = await _stock.GetOutboundShortagesAsync(
+                    dbCheck,
+                    depotId,
+                    stockLines,
+                    StockMovementService.OrigineTypeBonLivraison,
+                    BlId,
+                    cancellationToken);
+                var settings = await _settings.GetAsync(cancellationToken);
+                if (!await StockShortageDialog.ConfirmContinueAsync(
+                        _dialog,
+                        _locale,
+                        shortages,
+                        _locale.T("Stock_ShortageTitle"),
+                        block: settings.BlocageSiStockInsuffisant,
+                        cancellationToken))
+                    return;
+            }
+        }
+
         IsBusy = true;
         try
         {

@@ -223,6 +223,20 @@ public partial class StockMainViewModel : BaseViewModel
         var detailNote = string.IsNullOrEmpty(motif)
             ? libInventaire
             : $"{libInventaire} — {motif}";
+
+        if (AjustementDelta < 0)
+        {
+            await using var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            var shortages = await _stock.GetOutboundShortagesAsync(
+                dbCheck,
+                locationId.Value,
+                [(id, Math.Abs(AjustementDelta))],
+                cancellationToken: cancellationToken);
+            if (!await StockShortageDialog.ConfirmContinueAsync(
+                    _dialog, _locale, shortages, _locale.T("Stock_ShortageTitle"), block: false, cancellationToken))
+                return;
+        }
+
         IsBusy = true;
         try
         {

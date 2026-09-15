@@ -359,6 +359,23 @@ public partial class BonChargeEditViewModel : BaseViewModel
             return;
         }
 
+        await using (var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken))
+        {
+            var stockLines = Lignes
+                .Where(l => l.ProduitId > 0 && l.Quantite > 0)
+                .Select(l => (l.ProduitId, l.Quantite));
+            var shortages = await _stock.GetOutboundShortagesAsync(
+                dbCheck,
+                DepotLocationId,
+                stockLines,
+                StockMovementService.OrigineTypeBonCharge,
+                BonChargeId,
+                cancellationToken);
+            if (!await StockShortageDialog.ConfirmContinueAsync(
+                    _dialog, _locale, shortages, _locale.T("Stock_ShortageTitle"), block: false, cancellationToken))
+                return;
+        }
+
         IsBusy = true;
         try
         {

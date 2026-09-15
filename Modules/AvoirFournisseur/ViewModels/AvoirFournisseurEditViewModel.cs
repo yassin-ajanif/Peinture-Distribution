@@ -386,6 +386,35 @@ public partial class AvoirFournisseurEditViewModel : BaseViewModel
             return;
         }
 
+        if (RetourMarchandise)
+        {
+            await using var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            var depot = await dbCheck.StockLocations.AsNoTracking()
+                .Where(l => !l.IsVirtual && l.Nom == StockLocation.DefaultDepotNom)
+                .Select(l => (int?)l.Id)
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? await dbCheck.StockLocations.AsNoTracking()
+                    .Where(l => !l.IsVirtual && l.Actif)
+                    .Select(l => (int?)l.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+            if (depot is int depotId)
+            {
+                var stockLines = Lignes
+                    .Where(l => l.ProduitId > 0 && l.Quantite > 0)
+                    .Select(l => (l.ProduitId, l.Quantite));
+                var shortages = await _stock.GetOutboundShortagesAsync(
+                    dbCheck,
+                    depotId,
+                    stockLines,
+                    StockMovementService.OrigineTypeAvoirFournisseur,
+                    AvoirFournisseurId,
+                    cancellationToken);
+                if (!await StockShortageDialog.ConfirmContinueAsync(
+                        _dialog, _locale, shortages, _locale.T("Stock_ShortageTitle"), block: false, cancellationToken))
+                    return;
+            }
+        }
+
         IsBusy = true;
         try
         {

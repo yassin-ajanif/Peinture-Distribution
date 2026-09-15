@@ -310,6 +310,35 @@ public partial class PosViewModel : BaseViewModel
         }
 
         var payments = PaymentSplits.Where(p => p.Montant > 0).Select(p => (p.Mode, p.Montant)).ToList();
+
+        await using (var dbCheck = await _dbFactory.CreateDbContextAsync())
+        {
+            var depot = await dbCheck.StockLocations.AsNoTracking()
+                .Where(l => !l.IsVirtual && l.Nom == StockLocation.DefaultDepotNom)
+                .Select(l => (int?)l.Id)
+                .FirstOrDefaultAsync()
+                ?? await dbCheck.StockLocations.AsNoTracking()
+                    .Where(l => !l.IsVirtual && l.Actif)
+                    .Select(l => (int?)l.Id)
+                    .FirstOrDefaultAsync();
+
+            if (depot is int depotId)
+            {
+                var stockLines = Cart
+                    .Where(l => l.ProduitId > 0 && l.Quantite > 0)
+                    .Select(l => (l.ProduitId, l.Quantite));
+                var shortages = await _stock.GetOutboundShortagesAsync(dbCheck, depotId, stockLines);
+                var cfg = await _settings.GetAsync();
+                if (!await StockShortageDialog.ConfirmContinueAsync(
+                        _dialog,
+                        _locale,
+                        shortages,
+                        _locale.T("Stock_ShortageTitle"),
+                        block: cfg.BlocageSiStockInsuffisant))
+                    return;
+            }
+        }
+
         var facture = await _posService.CheckoutAsync(clientId, cartData, payments, RemiseGlobale);
 
         Cart.Clear();

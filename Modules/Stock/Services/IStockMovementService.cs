@@ -81,4 +81,16 @@ public interface IStockMovementService
         IEnumerable<(int ProduitId, decimal Quantite)> lines,
         int? createdByUserId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Products where additional outbound from <paramref name="fromLocationId"/> would exceed available stock.
+    /// Accounts for quantities already applied by the same document (<paramref name="origineType"/> / <paramref name="origineId"/>).
+    /// </summary>
+    Task<IReadOnlyList<StockShortageItem>> GetOutboundShortagesAsync(
+        AppDbContext db,
+        int fromLocationId,
+        IEnumerable<(int ProduitId, decimal Quantite)> desiredOutboundLines,
+        string? origineType = null,
+        int? origineId = null,
+        CancellationToken cancellationToken = default);
 }

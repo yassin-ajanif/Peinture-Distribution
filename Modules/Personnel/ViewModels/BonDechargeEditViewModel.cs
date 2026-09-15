@@ -359,6 +359,32 @@ public partial class BonDechargeEditViewModel : BaseViewModel
             return;
         }
 
+        await using (var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken))
+        {
+            var user = await dbCheck.Users
+                .FirstOrDefaultAsync(u => u.Id == AssignedToUserId, cancellationToken);
+            if (user is null)
+            {
+                await _dialog.ShowErrorAsync(_locale.T("BDH_Title"), _locale.T("BCH_ErrAssigned"), cancellationToken);
+                return;
+            }
+
+            var virtualLoc = await _locations.GetOrCreateVirtualForUserAsync(dbCheck, user, cancellationToken);
+            var stockLines = Lignes
+                .Where(l => l.ProduitId > 0 && l.Quantite > 0)
+                .Select(l => (l.ProduitId, l.Quantite));
+            var shortages = await _stock.GetOutboundShortagesAsync(
+                dbCheck,
+                virtualLoc.Id,
+                stockLines,
+                StockMovementService.OrigineTypeBonDecharge,
+                BonDechargeId,
+                cancellationToken);
+            if (!await StockShortageDialog.ConfirmContinueAsync(
+                    _dialog, _locale, shortages, _locale.T("Stock_ShortageTitle"), block: false, cancellationToken))
+                return;
+        }
+
         IsBusy = true;
         try
         {
@@ -479,4 +505,4 @@ public partial class BonDechargeEditViewModel : BaseViewModel
         list.LoadCommand.Execute(null);
     }
 }
-
+

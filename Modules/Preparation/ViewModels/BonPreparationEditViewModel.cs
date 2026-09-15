@@ -694,6 +694,24 @@ public partial class BonPreparationEditViewModel : BaseViewModel
             return;
         }
 
+        await using (var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken))
+        {
+            var locationId = StockLocationId > 0 ? StockLocationId : 1;
+            var stockLines = Lignes
+                .Where(l => l.ProduitId > 0 && l.Quantite > 0)
+                .Select(l => (l.ProduitId, l.Quantite));
+            var shortages = await _stock.GetOutboundShortagesAsync(
+                dbCheck,
+                locationId,
+                stockLines,
+                StockMovementService.OrigineTypeBonPreparation,
+                BonPreparationId,
+                cancellationToken);
+            if (!await StockShortageDialog.ConfirmContinueAsync(
+                    _dialog, _locale, shortages, _locale.T("Stock_ShortageTitle"), block: false, cancellationToken))
+                return;
+        }
+
         IsBusy = true;
         try
         {
