@@ -42,20 +42,54 @@ public class MouvementStock : BaseEntity
         }
     }
 
+    /// <summary>
+    /// When set (e.g. stock history for a catalogue location), StockApres / SignedQuantite
+    /// are relative to that location.
+    /// </summary>
     [NotMapped]
-    public decimal StockApres => FromApres ?? ToApres ?? 0m;
+    public int? HistoryLocationId { get; set; }
 
     [NotMapped]
-    public decimal SignedQuantite => Type switch
+    public decimal StockApres => GetStockApresFor(HistoryLocationId);
+
+    [NotMapped]
+    public decimal SignedQuantite => HistoryLocationId is int loc
+        ? GetSignedQuantiteFor(loc)
+        : Type switch
+        {
+            TypeMouvement.Sortie => -Math.Abs(Quantite),
+            TypeMouvement.Entree => Math.Abs(Quantite),
+            TypeMouvement.Transfert => Math.Abs(Quantite),
+            TypeMouvement.Ajustement => FromLocationId is not null && ToLocationId is null
+                ? -Math.Abs(Quantite)
+                : Math.Abs(Quantite),
+            _ => Quantite
+        };
+
+    public decimal GetStockApresFor(int? locationId)
     {
-        TypeMouvement.Sortie => -Math.Abs(Quantite),
-        TypeMouvement.Entree => Math.Abs(Quantite),
-        TypeMouvement.Transfert => Math.Abs(Quantite),
-        TypeMouvement.Ajustement => FromLocationId is not null && ToLocationId is null
-            ? -Math.Abs(Quantite)
-            : Math.Abs(Quantite),
-        _ => Quantite
-    };
+        if (locationId is int loc)
+        {
+            if (ToLocationId == loc)
+                return ToApres ?? 0m;
+            if (FromLocationId == loc)
+                return FromApres ?? 0m;
+        }
+
+        return FromApres ?? ToApres ?? 0m;
+    }
+
+    public decimal GetSignedQuantiteFor(int locationId)
+    {
+        var qty = Math.Abs(Quantite);
+        var fromHere = FromLocationId == locationId;
+        var toHere = ToLocationId == locationId;
+        if (toHere && !fromHere)
+            return qty;
+        if (fromHere && !toHere)
+            return -qty;
+        return 0m;
+    }
 
     [NotMapped]
     public string QuantiteSignedLabel

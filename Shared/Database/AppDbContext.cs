@@ -131,6 +131,7 @@ public class AppDbContext : DbContext
             e.HasIndex(m => m.ProduitId);
             e.HasIndex(m => new { m.OrigineType, m.OrigineId });
             e.Ignore(m => m.Type);
+            e.Ignore(m => m.HistoryLocationId);
             e.Ignore(m => m.StockApres);
             e.Ignore(m => m.SignedQuantite);
             e.Ignore(m => m.QuantiteSignedLabel);

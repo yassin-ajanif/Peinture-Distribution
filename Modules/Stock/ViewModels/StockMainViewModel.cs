@@ -260,8 +260,18 @@ public partial class StockMainViewModel : BaseViewModel
     {
         if (SelectedProduit is null) return;
 
+        var locationId = SelectedStockLocation?.Id;
+        if (locationId is null or 0)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("Stock_Title"), _locale.T("Lbl_StockLocation"), cancellationToken);
+            return;
+        }
+
         var vm = _sp.GetRequiredService<StockMovementsHistoryViewModel>();
-        vm.Configure(SelectedProduit.Id, $"{SelectedProduit.Reference} — {SelectedProduit.Designation}");
+        vm.Configure(
+            SelectedProduit.Id,
+            $"{SelectedProduit.Reference} — {SelectedProduit.Designation}",
+            locationId.Value);
         await StockMovementsHistoryHost.ShowAsync(vm, cancellationToken);
     }
 }

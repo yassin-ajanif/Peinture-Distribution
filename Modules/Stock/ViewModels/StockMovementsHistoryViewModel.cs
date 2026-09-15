@@ -25,6 +25,7 @@ public partial class StockMovementsHistoryViewModel : BaseViewModel
     private readonly IServiceProvider _sp;
 
     private int _produitId;
+    private int _locationId;
     private string _productLabel = string.Empty;
 
     public StockMovementsHistoryViewModel(
@@ -60,10 +61,11 @@ public partial class StockMovementsHistoryViewModel : BaseViewModel
     [ObservableProperty] private string _wmMovementClientSearch = string.Empty;
     [ObservableProperty] private string _btnClose = string.Empty;
 
-    public void Configure(int produitId, string productLabel)
+    public void Configure(int produitId, string productLabel, int locationId)
     {
         _produitId = produitId;
         _productLabel = productLabel;
+        _locationId = locationId;
         Pagination.CurrentPage = 1;
         MovementClientSearch = string.Empty;
         Mouvements.Clear();
@@ -98,21 +100,26 @@ public partial class StockMovementsHistoryViewModel : BaseViewModel
     [RelayCommand]
     private async Task LoadMouvementsAsync(CancellationToken cancellationToken)
     {
-        if (_produitId == 0) return;
+        if (_produitId == 0 || _locationId == 0) return;
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var locationId = _locationId;
         var q = db.MouvementsStock.AsNoTracking()
             .Include(m => m.FromLocation)
             .Include(m => m.ToLocation)
             .Where(m => m.ProduitId == _produitId)
+            .Where(m => m.FromLocationId == locationId || m.ToLocationId == locationId)
             .WherePartyNameMatches(db, MovementClientSearch);
         var total = await q.CountAsync(cancellationToken);
         var list = await q
             .OrderByDescending(m => m.CreatedAt)
+            .ThenByDescending(m => m.Id)
             .Skip(Pagination.Skip)
             .Take(Pagination.PageSize)
             .ToListAsync(cancellationToken);
         await MouvementStockEnricher.EnrichMovementDetailsAsync(db, list, _locale.T("Lbl_PrixHt"), cancellationToken);
         MouvementStockEnricher.ApplyLocationLabels(list, _locale);
+        foreach (var m in list)
+            m.HistoryLocationId = locationId;
         Mouvements.Clear();
         foreach (var m in list) Mouvements.Add(m);
         Pagination.TotalCount = total;
