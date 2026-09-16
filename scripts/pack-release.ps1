@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-$Version = "1.0.3"
+$Version = "1.0.0"
 $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $PublishDir = Join-Path $ProjectRoot "publish"
@@ -7,7 +7,7 @@ $ReleaseDir = Join-Path $ProjectRoot "releases"
 
 Push-Location $ProjectRoot
 try {
-    dotnet publish GestionCommerciale.csproj `
+    dotnet publish DistributionPeinture.csproj `
         -c Release `
         --self-contained `
         -r win-x64 `
@@ -17,11 +17,11 @@ try {
     $IconPath = Join-Path $ProjectRoot "Assets\faturati.ico"
 
     vpk pack `
-        --packId Sonlighting.GestionCommerciale `
-        --packTitle "SAHRAOUI" `
+        --packId DistributionPeinture `
+        --packTitle "Distribution Peinture" `
         --packVersion $Version `
         --packDir $PublishDir `
-        --mainExe GestionCommerciale.exe `
+        --mainExe DistributionPeinture.exe `
         --icon $IconPath `
         --outputDir $ReleaseDir
 }

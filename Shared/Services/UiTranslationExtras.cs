@@ -337,7 +337,7 @@ internal static class UiTranslationExtras
         ["SupplierLedger_FactureFmt"] = ("FACTURE FOURNISSEUR N°{0}", "فاتورة مورد رقم {0}"),
         ["Avoir_DraftPlaceholder"] = ("(brouillon)", "(مسودة)"),
 
-        ["Login_AppTitle"] = ("Solighting", "Solighting"),
+        ["Login_AppTitle"] = ("Distribution Peinture", "Distribution Peinture"),
         ["Login_Subtitle"] = ("Connexion", "تسجيل الدخول"),
         ["Users_FormHint"] = ("Nouvel utilisateur ou modifier la sélection", "مستخدم جديد أو تعديل المحدد"),
 

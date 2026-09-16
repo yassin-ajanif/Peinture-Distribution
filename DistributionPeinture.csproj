@@ -7,11 +7,14 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <RootNamespace>GestionCommerciale</RootNamespace>
+    <RootNamespace>DistributionPeinture</RootNamespace>
+    <AssemblyName>DistributionPeinture</AssemblyName>
     <ApplicationIcon>Assets\faturati.ico</ApplicationIcon>
-    <Version>1.0.3</Version>
-    <AssemblyVersion>1.0.3.0</AssemblyVersion>
-    <FileVersion>1.0.3.0</FileVersion>
+    <AssemblyTitle>Distribution Peinture</AssemblyTitle>
+    <Product>Distribution Peinture</Product>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
   <!-- IDE / dotnet-watch C# hot reload (XAML uses HotAvalonia in Debug). -->

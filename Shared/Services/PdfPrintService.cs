@@ -17,7 +17,7 @@ public sealed class PdfPrintService : IPdfPrintService
 
     private static async Task<string> WriteTempPdfAsync(byte[] pdfBytes, string documentTitle, CancellationToken cancellationToken)
     {
-        var dir = Path.Combine(Path.GetTempPath(), "GestionCommerciale", "print");
+        var dir = Path.Combine(Path.GetTempPath(), "DistributionPeinture", "print");
         Directory.CreateDirectory(dir);
 
         var safeName = string.Join("_", documentTitle.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
