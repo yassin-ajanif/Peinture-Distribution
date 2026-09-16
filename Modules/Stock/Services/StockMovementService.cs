@@ -42,7 +42,7 @@ public sealed class StockMovementService : IStockMovementService
             db, produitId, type, quantite, locationId, origineType, origineId, note, createdByUserId, cancellationToken);
     }
 
-    public Task ResyncBonLivraisonStockAsync(
+    public async Task ResyncBonLivraisonStockAsync(
         AppDbContext db,
         int bonLivraisonId,
         string noteDetail,
@@ -55,17 +55,67 @@ public sealed class StockMovementService : IStockMovementService
             .GroupBy(l => l.ProduitId)
             .ToDictionary(g => g.Key, g => -g.Sum(l => l.QuantiteLivree));
 
-        return SyncDocumentStockAsync(
+        var locationId = await ResolveBonLivraisonLocationIdAsync(db, bonLivraisonId, cancellationToken);
+
+        var priorLocationIds = await db.MouvementsStock
+            .Where(m => m.OrigineType == OrigineTypeBonLivraison && m.OrigineId == bonLivraisonId)
+            .Select(m => new { m.FromLocationId, m.ToLocationId })
+            .ToListAsync(cancellationToken);
+
+        var otherLocationIds = priorLocationIds
+            .SelectMany(m => new int?[] { m.FromLocationId, m.ToLocationId })
+            .Where(id => id is int loc && loc != locationId)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var empty = new Dictionary<int, decimal>();
+        foreach (var oldLocationId in otherLocationIds)
+        {
+            await SyncDocumentStockAsync(
+                db,
+                OrigineTypeBonLivraison,
+                bonLivraisonId,
+                noteDetail,
+                empty,
+                oldLocationId,
+                createdByUserId,
+                useModificationNoteOnEdit: true,
+                onPositiveEntreeDelta: null,
+                cancellationToken);
+        }
+
+        await SyncDocumentStockAsync(
             db,
             OrigineTypeBonLivraison,
             bonLivraisonId,
             noteDetail,
             desired,
-            stockLocationId: null,
+            locationId,
             createdByUserId,
             useModificationNoteOnEdit: true,
             onPositiveEntreeDelta: null,
             cancellationToken);
+    }
+
+    private async Task<int> ResolveBonLivraisonLocationIdAsync(
+        AppDbContext db,
+        int bonLivraisonId,
+        CancellationToken cancellationToken)
+    {
+        var vendeurId = await db.BonsLivraison.AsNoTracking()
+            .Where(b => b.Id == bonLivraisonId)
+            .Select(b => b.VendeurId)
+            .FirstAsync(cancellationToken);
+
+        if (vendeurId is int id)
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+            if (user is not null)
+                return (await _locations.GetOrCreateVirtualForUserAsync(db, user, cancellationToken)).Id;
+        }
+
+        return (await _locations.GetOrCreateDefaultDepotAsync(db, cancellationToken)).Id;
     }
 
     public Task SyncBonReceptionStockAsync(

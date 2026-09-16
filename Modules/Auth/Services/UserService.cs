@@ -149,6 +149,13 @@ public sealed class UserService : IUserService
         if (user.UserType != UserType.Vendeur)
             throw new KeyNotFoundException("Vendeur introuvable.");
 
+        var hasBl = await db.BonsLivraison.AnyAsync(b => b.VendeurId == id, cancellationToken);
+        if (hasBl)
+        {
+            throw new InvalidOperationException(
+                "Impossible de supprimer ce vendeur : des bons de livraison lui sont assignés. Désactivez-le à la place.");
+        }
+
         var virtualStock = await db.StockLocations
             .FirstOrDefaultAsync(l => l.IsVirtual && l.UserId == id, cancellationToken);
 

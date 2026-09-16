@@ -5,6 +5,7 @@ using System.Linq;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GestionCommerciale.Modules.Auth.Models;
 using GestionCommerciale.Modules.Auth.Services;
 using GestionCommerciale.Modules.Stock;
 using GestionCommerciale.Modules.Facturation.Models;
@@ -39,6 +40,7 @@ public partial class BLEditViewModel : BaseViewModel
     private readonly ILocaleService _locale;
     private readonly IUiPreferencesService _uiPreferences;
     private readonly IStockMovementService _stock;
+    private readonly IStockLocationService _locations;
     private readonly IPdfService _pdf;
     private readonly IPdfPrintService _pdfPrint;
     private readonly IAppSettingsService _settings;
@@ -58,6 +60,7 @@ public partial class BLEditViewModel : BaseViewModel
         ILocaleService locale,
         IUiPreferencesService uiPreferences,
         IStockMovementService stock,
+        IStockLocationService locations,
         IPdfService pdf,
         IPdfPrintService pdfPrint,
         IAppSettingsService settings,
@@ -76,6 +79,7 @@ public partial class BLEditViewModel : BaseViewModel
         _locale = locale;
         _uiPreferences = uiPreferences;
         _stock = stock;
+        _locations = locations;
         _pdf = pdf;
         _pdfPrint = pdfPrint;
         _settings = settings;
@@ -104,6 +108,7 @@ public partial class BLEditViewModel : BaseViewModel
     [ObservableProperty] private string _btnToInvoice = string.Empty;
     [ObservableProperty] private string _menuDeleteBl = string.Empty;
     [ObservableProperty] private string _lblClient = string.Empty;
+    [ObservableProperty] private string _lblVendeur = string.Empty;
     [ObservableProperty] private string _wmClientSearch = string.Empty;
     [ObservableProperty] private string _lblDateBl = string.Empty;
     [ObservableProperty] private string _btnAddLine = string.Empty;
@@ -211,6 +216,7 @@ public partial class BLEditViewModel : BaseViewModel
         BtnToInvoice = _locale.T("Btn_ToInvoice");
         MenuDeleteBl = _locale.T("BL_MenuDelete");
         LblClient = _locale.T("Lbl_Client");
+        LblVendeur = _locale.T("Lbl_Vendeur");
         WmClientSearch = _locale.T("Wm_SearchClient");
         LblDateBl = _locale.T("Lbl_DateBL");
         BtnAddLine = _locale.T("Btn_AddLine");
@@ -262,6 +268,7 @@ public partial class BLEditViewModel : BaseViewModel
     public ClientCategoryFilter ClientLookup { get; } = new();
     public ObservableCollection<GestionCommerciale.Modules.Tiers.Models.Tiers> Clients => ClientLookup.Clients;
     public WhatsAppOpenHelper WhatsApp { get; }
+    public ObservableCollection<User> Vendeurs { get; } = [];
     public ObservableCollection<GestionCommerciale.Modules.Stock.Models.Produit> Produits { get; } = [];
     public ObservableCollection<BLLineRow> Lignes { get; } = [];
     public ObservableCollection<BLPaiementRowViewModel> Paiements { get; } = [];
@@ -270,6 +277,9 @@ public partial class BLEditViewModel : BaseViewModel
     [ObservableProperty] private int? _devisId;
     [ObservableProperty] private int _clientId;
     [ObservableProperty] private GestionCommerciale.Modules.Tiers.Models.Tiers? _selectedClient;
+    [ObservableProperty] private int _vendeurId;
+    [ObservableProperty] private User? _selectedVendeur;
+    private bool _suppressVendeurSync;
     public ClientSoldeDisplay ClientSolde => _clientSolde;
 
     [ObservableProperty] private string _numero = string.Empty;
@@ -426,6 +436,52 @@ public partial class BLEditViewModel : BaseViewModel
         RefreshWhatsAppContact();
     }
 
+    partial void OnSelectedVendeurChanged(User? value)
+    {
+        if (_suppressVendeurSync) return;
+        var id = value?.Id ?? 0;
+        if (VendeurId != id)
+            VendeurId = id;
+    }
+
+    partial void OnVendeurIdChanged(int value)
+    {
+        if (_suppressVendeurSync) return;
+        if (SelectedVendeur?.Id != value)
+        {
+            _suppressVendeurSync = true;
+            SelectedVendeur = Vendeurs.FirstOrDefault(u => u.Id == value);
+            _suppressVendeurSync = false;
+        }
+    }
+
+    private async Task LoadVendeursAsync(AppDbContext db, int? currentVendeurId, bool isNew, CancellationToken cancellationToken)
+    {
+        var depotPhone = DbSeeder.DepotPrincipalAdminPhone;
+        var users = await db.Users.AsNoTracking()
+            .Where(u => u.UserType == UserType.Vendeur || u.Phone == depotPhone)
+            .OrderBy(u => u.Phone == depotPhone ? 0 : 1)
+            .ThenBy(u => u.FullName)
+            .ThenBy(u => u.Phone)
+            .ToListAsync(cancellationToken);
+
+        Vendeurs.Clear();
+        foreach (var u in users.Where(u => u.Actif || u.Id == currentVendeurId))
+            Vendeurs.Add(u);
+
+        _suppressVendeurSync = true;
+        if (currentVendeurId is int id && id > 0)
+            SelectedVendeur = Vendeurs.FirstOrDefault(u => u.Id == id);
+        else if (isNew)
+            SelectedVendeur = Vendeurs.FirstOrDefault(u => !DbSeeder.IsDepotPrincipalAdmin(u))
+                ?? Vendeurs.FirstOrDefault();
+        else
+            SelectedVendeur = Vendeurs.FirstOrDefault(u => DbSeeder.IsDepotPrincipalAdmin(u))
+                ?? Vendeurs.FirstOrDefault();
+        VendeurId = SelectedVendeur?.Id ?? 0;
+        _suppressVendeurSync = false;
+    }
+
     private void RefreshWhatsAppContact()
     {
         var prefill = string.IsNullOrWhiteSpace(Numero) || Numero.Contains('(', StringComparison.Ordinal)
@@ -492,6 +548,7 @@ public partial class BLEditViewModel : BaseViewModel
 
         if (id == null)
         {
+            await LoadVendeursAsync(db, null, isNew: true, cancellationToken);
             Numero = "(brouillon)";
             ClientId = Clients.FirstOrDefault()?.Id ?? 0;
             Date = DateTime.Today;
@@ -511,6 +568,7 @@ public partial class BLEditViewModel : BaseViewModel
             InvoicedLabel = _locale.Tf("BL_FacturedOn", factNum);
 
         var b = await db.BonsLivraison.Include(x => x.Lignes).Include(x => x.Paiements).FirstAsync(x => x.Id == id, cancellationToken);
+        await LoadVendeursAsync(db, b.VendeurId, isNew: false, cancellationToken);
         _linkedFactureId = b.FactureId;
         _linkedBccId = b.BonCommandeClientId;
         DevisId = b.DevisId;
@@ -574,6 +632,7 @@ public partial class BLEditViewModel : BaseViewModel
             .Where(t => t.Actif && (t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux))
             .OrderBy(t => t.Nom).ToListAsync(cancellationToken);
         ClientLookup.ReplaceAll(clients);
+        await LoadVendeursAsync(db, null, isNew: true, cancellationToken);
 
         var produits = await db.Produits.AsNoTracking().Where(p => p.Actif)
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);
@@ -619,6 +678,7 @@ public partial class BLEditViewModel : BaseViewModel
             .Where(t => t.Actif && (t.Type == TypeTiers.Client || t.Type == TypeTiers.LesDeux))
             .OrderBy(t => t.Nom).ToListAsync(cancellationToken);
         ClientLookup.ReplaceAll(clients);
+        await LoadVendeursAsync(db, null, isNew: true, cancellationToken);
 
         var produits = await db.Produits.AsNoTracking().Where(p => p.Actif)
             .SelectForListWithoutImageData().ToListAsync(cancellationToken);
@@ -793,6 +853,12 @@ public partial class BLEditViewModel : BaseViewModel
             return;
         }
 
+        if (VendeurId <= 0)
+        {
+            await _dialog.ShowErrorAsync(_locale.T("BL_DlgShort"), _locale.T("BL_ErrVendeur"), cancellationToken);
+            return;
+        }
+
         if (DocumentTotalsHelper.IsEffectivelyZeroTotal(ComputeFullPaymentTtc()))
         {
             await _dialog.ShowErrorAsync(_locale.T("BL_DlgShort"), _locale.T("Doc_ErrZeroTtc"), cancellationToken);
@@ -817,37 +883,33 @@ public partial class BLEditViewModel : BaseViewModel
 
         await using (var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken))
         {
-            var depot = await dbCheck.StockLocations.AsNoTracking()
-                .Where(l => !l.IsVirtual && l.Nom == GestionCommerciale.Modules.Stock.Models.StockLocation.DefaultDepotNom)
-                .Select(l => (int?)l.Id)
-                .FirstOrDefaultAsync(cancellationToken)
-                ?? await dbCheck.StockLocations.AsNoTracking()
-                    .Where(l => !l.IsVirtual && l.Actif)
-                    .Select(l => (int?)l.Id)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-            if (depot is int depotId)
+            var vendeur = await dbCheck.Users.FirstOrDefaultAsync(u => u.Id == VendeurId, cancellationToken);
+            if (vendeur is null)
             {
-                var stockLines = Lignes
-                    .Where(l => l.ProduitId > 0 && l.QuantiteLivree > 0)
-                    .Select(l => (l.ProduitId, l.QuantiteLivree));
-                var shortages = await _stock.GetOutboundShortagesAsync(
-                    dbCheck,
-                    depotId,
-                    stockLines,
-                    StockMovementService.OrigineTypeBonLivraison,
-                    BlId,
-                    cancellationToken);
-                var settings = await _settings.GetAsync(cancellationToken);
-                if (!await StockShortageDialog.ConfirmContinueAsync(
-                        _dialog,
-                        _locale,
-                        shortages,
-                        _locale.T("Stock_ShortageTitle"),
-                        block: settings.BlocageSiStockInsuffisant,
-                        cancellationToken))
-                    return;
+                await _dialog.ShowErrorAsync(_locale.T("BL_DlgShort"), _locale.T("BL_ErrVendeur"), cancellationToken);
+                return;
             }
+
+            var stockLocation = await _locations.GetOrCreateVirtualForUserAsync(dbCheck, vendeur, cancellationToken);
+            var stockLines = Lignes
+                .Where(l => l.ProduitId > 0 && l.QuantiteLivree > 0)
+                .Select(l => (l.ProduitId, l.QuantiteLivree));
+            var shortages = await _stock.GetOutboundShortagesAsync(
+                dbCheck,
+                stockLocation.Id,
+                stockLines,
+                StockMovementService.OrigineTypeBonLivraison,
+                BlId,
+                cancellationToken);
+            var settings = await _settings.GetAsync(cancellationToken);
+            if (!await StockShortageDialog.ConfirmContinueAsync(
+                    _dialog,
+                    _locale,
+                    shortages,
+                    _locale.T("Stock_ShortageTitle"),
+                    block: settings.BlocageSiStockInsuffisant,
+                    cancellationToken))
+                return;
         }
 
         IsBusy = true;
@@ -862,6 +924,7 @@ public partial class BLEditViewModel : BaseViewModel
                 {
                     Numero = num,
                     ClientId = ClientId,
+                    VendeurId = VendeurId,
                     DevisId = DevisId,
                     Date = Date,
                     DateEcheance = DateEcheance,
@@ -893,6 +956,7 @@ public partial class BLEditViewModel : BaseViewModel
             {
                 entity = await db.BonsLivraison.Include(b => b.Lignes).FirstAsync(b => b.Id == BlId, cancellationToken);
                 entity.ClientId = ClientId;
+                entity.VendeurId = VendeurId;
                 entity.DevisId = DevisId;
                 entity.Date = Date;
                 entity.DateEcheance = DateEcheance;

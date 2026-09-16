@@ -115,6 +115,8 @@ public static class UiTranslations
         ["BL_FromDevis"] = ("BL depuis devis", "تسليم من عرض سعر"),
         ["BL_ErrNoEdit"] = ("Non modifiable.", "غير قابل للتعديل."),
         ["BL_ErrClientLines"] = ("Client et lignes requis.", "العميل والأسطر مطلوبان."),
+        ["BL_ErrVendeur"] = ("Sélectionnez le vendeur.", "اختر البائع."),
+        ["Lbl_Vendeur"] = ("Vendeur", "البائع"),
         ["BL_ErrDraftOnly"] = ("Seul le brouillon est modifiable.", "مسودة فقط قابلة للتعديل."),
         ["BL_Saved"] = ("Enregistré.", "تم الحفظ."),
         ["BL_ClientSoldeFmt"] = ("Solde : {0}", "الرصيد : {0}"),

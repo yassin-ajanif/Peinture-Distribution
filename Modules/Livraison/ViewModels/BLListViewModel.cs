@@ -61,6 +61,7 @@ public partial class BLListViewModel : BaseViewModel
     private DateTime? _dateTo;
     [ObservableProperty] private string _colHeaderRef = string.Empty;
     [ObservableProperty] private string _colHeaderParty = string.Empty;
+    [ObservableProperty] private string _colHeaderVendeur = string.Empty;
     [ObservableProperty] private string _colHeaderDate = string.Empty;
     [ObservableProperty] private string _colHeaderTtc = string.Empty;
     [ObservableProperty] private string _colHeaderNote = string.Empty;
@@ -78,12 +79,13 @@ public partial class BLListViewModel : BaseViewModel
         MenuDeleteBl = _locale.T("BL_MenuDelete");
         ColHeaderRef = _locale.T("DevisList_ColRef");
         ColHeaderParty = _locale.T("Lbl_Client");
+        ColHeaderVendeur = _locale.T("Lbl_Vendeur");
         ColHeaderDate = _locale.T("DevisList_ColDate");
         ColHeaderTtc = _locale.T("DevisList_ColTtc");
         ColHeaderNote = _locale.T("DevisList_ColNote");
         ColHeaderInvoiced = _locale.T("BL_ColInvoiced");
         BtnFacturerSelection = _locale.T("BL_FacturerSelection");
-        SearchWatermark = _locale.T("DocList_SearchPlaceholderClient");
+        SearchWatermark = _locale.T("BLList_SearchPlaceholder");
     }
 
     public ObservableCollection<BLListRow> Items { get; } = [];
@@ -112,7 +114,8 @@ public partial class BLListViewModel : BaseViewModel
             var search = SearchText?.Trim();
             if (!string.IsNullOrEmpty(search))
                 q = q.Where(bl => EF.Functions.Like(bl.Numero, $"%{search}%")
-                    || db.Tiers.AsNoTracking().Any(t => t.Id == bl.ClientId && EF.Functions.Like(t.Nom, $"%{search}%")));
+                    || db.Tiers.AsNoTracking().Any(t => t.Id == bl.ClientId && EF.Functions.Like(t.Nom, $"%{search}%"))
+                    || (bl.VendeurId != null && db.Users.AsNoTracking().Any(u => u.Id == bl.VendeurId && EF.Functions.Like(u.FullName, $"%{search}%"))));
 
             var total = await q.CountAsync(ct);
             var list = await q.OrderByDescending(b => b.Date)
@@ -122,6 +125,12 @@ public partial class BLListViewModel : BaseViewModel
             var noms = await db.Tiers.AsNoTracking()
                 .Where(t => ids.Contains(t.Id))
                 .ToDictionaryAsync(t => t.Id, t => t.Nom, ct);
+            var vendeurIds = list.Where(b => b.VendeurId != null).Select(b => b.VendeurId!.Value).Distinct().ToList();
+            var vendeurNoms = vendeurIds.Count == 0
+                ? new Dictionary<int, string>()
+                : await db.Users.AsNoTracking()
+                    .Where(u => vendeurIds.Contains(u.Id))
+                    .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
             var invoicedNums = await db.BonsLivraison.AsNoTracking()
                 .Where(b => list.Select(x => x.Id).Contains(b.Id) && b.FactureId != null)
                 .Include(b => b.Facture)
@@ -130,7 +139,12 @@ public partial class BLListViewModel : BaseViewModel
             Items.Clear();
             foreach (var b in list)
             {
-                var row = BLListRow.Create(b, noms.GetValueOrDefault(b.ClientId) ?? string.Empty, devise, _locale);
+                var row = BLListRow.Create(
+                    b,
+                    noms.GetValueOrDefault(b.ClientId) ?? string.Empty,
+                    b.VendeurId is int vid ? vendeurNoms.GetValueOrDefault(vid) ?? string.Empty : string.Empty,
+                    devise,
+                    _locale);
                 if (invoicedNums.TryGetValue(b.Id, out var factNum))
                     row.InvoicedLabel = factNum;
                 Items.Add(row);

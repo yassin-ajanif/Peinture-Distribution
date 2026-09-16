@@ -1,3 +1,4 @@
+using GestionCommerciale.Modules.Auth.Models;
 using GestionCommerciale.Modules.Facturation.Models;
 using GestionCommerciale.Shared.Models;
 
@@ -7,6 +8,11 @@ public class BonLivraison : BaseEntity
 {
     public string Numero { get; set; } = string.Empty;
     public int ClientId { get; set; }
+
+    /// <summary>Vendeur whose virtual stock this BL deducts from (dépôt principal admin = physical dépôt).</summary>
+    public int? VendeurId { get; set; }
+    public User? Vendeur { get; set; }
+
     public int? DevisId { get; set; }
     public int? BonCommandeClientId { get; set; }
     public int? FactureId { get; set; }

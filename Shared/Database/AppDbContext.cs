@@ -152,9 +152,13 @@ public class AppDbContext : DbContext
                 .HasForeignKey(b => b.BonCommandeClientId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasOne<Tiers>().WithMany().HasForeignKey(b => b.ClientId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(b => b.Vendeur).WithMany()
+                .HasForeignKey(b => b.VendeurId)
+                .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(b => b.FactureId);
             e.HasIndex(b => b.BonCommandeClientId);
             e.HasIndex(b => b.ClientId);
+            e.HasIndex(b => b.VendeurId);
         });
 
         modelBuilder.Entity<PaiementBonLivraison>(e =>
