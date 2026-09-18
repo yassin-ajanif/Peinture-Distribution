@@ -40,12 +40,23 @@ public static class DbSeeder
         else
         {
             var settings = db.AppSettings.First(a => a.Id == 1);
+            var changed = false;
             if (string.IsNullOrWhiteSpace(settings.Devise)
                 || settings.Devise.Trim().Equals("MAD", StringComparison.OrdinalIgnoreCase))
             {
                 settings.Devise = "DH";
-                db.SaveChanges();
+                changed = true;
             }
+
+            // Allow BL save with negative vendeur/depot stock (warn + confirm, not hard block).
+            if (settings.BlocageSiStockInsuffisant)
+            {
+                settings.BlocageSiStockInsuffisant = false;
+                changed = true;
+            }
+
+            if (changed)
+                db.SaveChanges();
         }
 
         if (!db.Tiers.Any(t => t.Nom == DefaultClientName))

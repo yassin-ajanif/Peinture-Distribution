@@ -52,7 +52,7 @@ public partial class SettingsViewModel : BaseViewModel
     [ObservableProperty] private string? _societeLogoPath;
     [ObservableProperty] private string _societeMentionsLegales = string.Empty;
     [ObservableProperty] private string _tauxTvaText = "20";
-    [ObservableProperty] private bool _blocageStock = true;
+    [ObservableProperty] private bool _blocageStock;
     [ObservableProperty] private bool _enableVirtualKeyboard;
     [ObservableProperty] private int _devisValiditeJours = 30;
     [ObservableProperty] private string _devise = "DH";

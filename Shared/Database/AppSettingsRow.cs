@@ -11,7 +11,7 @@ public class AppSettingsRow
     public string? SocieteMentionsLegales { get; set; }
     public string? SocieteLogoPath { get; set; }
     public string TauxTVAJson { get; set; } = "[20]"; // JSON array of decimals
-    public bool BlocageSiStockInsuffisant { get; set; } = true;
+    public bool BlocageSiStockInsuffisant { get; set; } = false;
     public int DevisValiditeJoursDefaut { get; set; } = 30;
     public string Devise { get; set; } = "DH";
 
