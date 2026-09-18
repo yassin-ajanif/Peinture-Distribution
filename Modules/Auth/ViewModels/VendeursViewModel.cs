@@ -330,7 +330,7 @@ public partial class VendeursViewModel : BaseViewModel
         foreach (var p in products.OrderBy(x => x.Reference))
         {
             var qty = stocks.GetValueOrDefault(p.Id);
-            if (qty <= 0m)
+            if (qty == 0m)
                 continue;
 
             var venteTtc = qty * p.PrixVenteHT * (1m + p.TauxTVA / 100m);
