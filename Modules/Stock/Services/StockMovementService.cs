@@ -340,6 +340,10 @@ public sealed class StockMovementService : IStockMovementService
         return 0m;
     }
 
+    /// <summary>
+    /// Idempotent transfer resync by reconciling each location's signed impact for this document.
+    /// Changing assignee (e.g. ahmed → salim) moves stock between vendeurs and does not touch the dépôt again.
+    /// </summary>
     private async Task SyncTransferDocumentStockAsync(
         AppDbContext db,
         string origineType,
@@ -363,7 +367,7 @@ public sealed class StockMovementService : IStockMovementService
         if (!fromOk || !toOk)
             throw new InvalidOperationException(_locale.T("Stock_ErrLocationInactive"));
 
-        var desired = lines
+        var desiredQtyByProduit = lines
             .Where(l => l.ProduitId > 0 && l.Quantite > 0)
             .GroupBy(l => l.ProduitId)
             .ToDictionary(g => g.Key, g => g.Sum(l => l.Quantite));
@@ -374,21 +378,57 @@ public sealed class StockMovementService : IStockMovementService
 
         var documentHasPriorMovements = movements.Count > 0;
 
-        var currentByProduit = movements
-            .GroupBy(m => m.ProduitId)
-            .ToDictionary(
-                g => g.Key,
-                g => g.Sum(m => TransferNetQty(m, fromLocationId, toLocationId)));
+        // Current signed impact of this document per (produit, location).
+        var currentImpact = new Dictionary<(int ProduitId, int LocationId), decimal>();
+        foreach (var m in movements)
+        {
+            if (m.FromLocationId is int fid)
+            {
+                var key = (m.ProduitId, fid);
+                currentImpact[key] = currentImpact.GetValueOrDefault(key) + SignedImpactOnLocation(m, fid);
+            }
 
-        var produitIds = currentByProduit.Keys.Union(desired.Keys).ToList();
+            if (m.ToLocationId is int tid)
+            {
+                var key = (m.ProduitId, tid);
+                currentImpact[key] = currentImpact.GetValueOrDefault(key) + SignedImpactOnLocation(m, tid);
+            }
+        }
+
+        // Desired: -qty at source (dépôt for BCH), +qty at destination (vendeur for BCH).
+        var desiredImpact = new Dictionary<(int ProduitId, int LocationId), decimal>();
+        foreach (var (produitId, qty) in desiredQtyByProduit)
+        {
+            desiredImpact[(produitId, fromLocationId)] = -qty;
+            desiredImpact[(produitId, toLocationId)] = qty;
+        }
+
+        var produitIds = currentImpact.Keys.Select(k => k.ProduitId)
+            .Union(desiredImpact.Keys.Select(k => k.ProduitId))
+            .Distinct()
+            .ToList();
+
         foreach (var produitId in produitIds)
         {
-            currentByProduit.TryGetValue(produitId, out var current);
-            desired.TryGetValue(produitId, out var want);
-            var delta = want - current;
-            if (delta == 0) continue;
+            var locationIds = currentImpact.Keys.Where(k => k.ProduitId == produitId).Select(k => k.LocationId)
+                .Union(desiredImpact.Keys.Where(k => k.ProduitId == produitId).Select(k => k.LocationId))
+                .Distinct()
+                .ToList();
 
-            var isAnnulation = want == 0 && current != 0;
+            var deltas = new Dictionary<int, decimal>();
+            foreach (var locId in locationIds)
+            {
+                currentImpact.TryGetValue((produitId, locId), out var current);
+                desiredImpact.TryGetValue((produitId, locId), out var desired);
+                var delta = desired - current;
+                if (delta != 0)
+                    deltas[locId] = delta;
+            }
+
+            if (deltas.Count == 0)
+                continue;
+
+            var isAnnulation = desiredQtyByProduit.GetValueOrDefault(produitId) == 0 && documentHasPriorMovements;
             var isModification = !isAnnulation && documentHasPriorMovements;
             var note = isAnnulation
                 ? _locale.Tf("Stock_AnnulationNote", noteDetail)
@@ -396,28 +436,46 @@ public sealed class StockMovementService : IStockMovementService
                     ? _locale.Tf("Stock_ModificationNote", noteDetail)
                     : noteDetail;
 
-            if (delta > 0)
+            // Pair stock leaving locations with stock entering locations (e.g. ahmed → salim).
+            var sources = deltas.Where(kv => kv.Value < 0)
+                .Select(kv => (LocationId: kv.Key, Remaining: -kv.Value))
+                .ToList();
+            var sinks = deltas.Where(kv => kv.Value > 0)
+                .Select(kv => (LocationId: kv.Key, Remaining: kv.Value))
+                .ToList();
+
+            var si = 0;
+            var ti = 0;
+            while (si < sources.Count && ti < sinks.Count)
             {
-                await ApplyLocationMovementAsync(
-                    db, produitId, fromLocationId, toLocationId, delta,
-                    origineType, origineId, note, createdByUserId, cancellationToken);
+                var move = Math.Min(sources[si].Remaining, sinks[ti].Remaining);
+                if (move > 0)
+                {
+                    await ApplyLocationMovementAsync(
+                        db,
+                        produitId,
+                        sources[si].LocationId,
+                        sinks[ti].LocationId,
+                        move,
+                        origineType,
+                        origineId,
+                        note,
+                        createdByUserId,
+                        cancellationToken);
+                }
+
+                sources[si] = (sources[si].LocationId, sources[si].Remaining - move);
+                sinks[ti] = (sinks[ti].LocationId, sinks[ti].Remaining - move);
+                if (sources[si].Remaining <= 0) si++;
+                if (sinks[ti].Remaining <= 0) ti++;
             }
-            else
+
+            if (si < sources.Count || ti < sinks.Count)
             {
-                await ApplyLocationMovementAsync(
-                    db, produitId, toLocationId, fromLocationId, -delta,
-                    origineType, origineId, note, createdByUserId, cancellationToken);
+                throw new InvalidOperationException(
+                    $"Stock transfer resync imbalance for product #{produitId} on {origineType} {origineId}.");
             }
         }
-    }
-
-    private static decimal TransferNetQty(MouvementStock m, int fromLocationId, int toLocationId)
-    {
-        if (m.FromLocationId == fromLocationId && m.ToLocationId == toLocationId)
-            return Math.Abs(m.Quantite);
-        if (m.FromLocationId == toLocationId && m.ToLocationId == fromLocationId)
-            return -Math.Abs(m.Quantite);
-        return 0m;
     }
 
     private async Task SyncDocumentStockAsync(
@@ -624,13 +682,13 @@ public sealed class StockMovementService : IStockMovementService
 
         if (fromId is int fid)
         {
-            var fromAvant = await StockBalanceQueries.GetBalanceAsync(db, produitId, fid, cancellationToken);
+            var fromAvant = await GetBalanceWithPendingAsync(db, produitId, fid, cancellationToken);
             fromApres = fromAvant - quantite;
         }
 
         if (toId is int tid)
         {
-            var toAvant = await StockBalanceQueries.GetBalanceAsync(db, produitId, tid, cancellationToken);
+            var toAvant = await GetBalanceWithPendingAsync(db, produitId, tid, cancellationToken);
             toApres = toAvant + quantite;
         }
 
@@ -647,5 +705,28 @@ public sealed class StockMovementService : IStockMovementService
             Note = note ?? string.Empty,
             CreatedByUserId = createdByUserId
         });
+    }
+
+    /// <summary>DB balance plus unsaved MouvementsStock already tracked on this context.</summary>
+    private async Task<decimal> GetBalanceWithPendingAsync(
+        AppDbContext db,
+        int produitId,
+        int locationId,
+        CancellationToken cancellationToken)
+    {
+        var balance = await StockBalanceQueries.GetBalanceAsync(db, produitId, locationId, cancellationToken);
+        foreach (var entry in db.ChangeTracker.Entries<MouvementStock>())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified))
+                continue;
+            var m = entry.Entity;
+            if (m.ProduitId != produitId)
+                continue;
+            if (m.FromLocationId != locationId && m.ToLocationId != locationId)
+                continue;
+            balance += SignedImpactOnLocation(m, locationId);
+        }
+
+        return balance;
     }
 }
