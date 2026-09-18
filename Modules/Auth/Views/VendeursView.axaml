@@ -35,7 +35,7 @@
             <ListBox.ItemTemplate>
               <DataTemplate DataType="m:User">
                 <Grid ColumnDefinitions="*,140,70">
-                  <TextBlock Text="{Binding FullName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding DisplayLabel}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                   <TextBlock Grid.Column="1" Text="{Binding Phone}" VerticalAlignment="Center"
                              Margin="8,0,0,0" TextTrimming="CharacterEllipsis"/>
                   <TextBlock Grid.Column="2"

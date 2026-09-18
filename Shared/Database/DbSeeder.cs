@@ -20,12 +20,32 @@ public static class DbSeeder
         !string.IsNullOrWhiteSpace(phone)
         && phone.Trim().Equals(DepotPrincipalAdminPhone, StringComparison.OrdinalIgnoreCase);
 
+    public static string FormatUserDisplayName(User? user)
+    {
+        if (user is null)
+            return string.Empty;
+        var name = string.IsNullOrWhiteSpace(user.FullName) ? user.Phone : user.FullName.Trim();
+        if (IsDepotPrincipalAdmin(user))
+            return $"{name} — {StockLocation.DefaultDepotNom}";
+        return name;
+    }
+
     public static void Seed(AppDbContext db)
     {
         if (!db.AppSettings.Any())
         {
             db.AppSettings.Add(new AppSettingsRow { Id = 1 });
             db.SaveChanges();
+        }
+        else
+        {
+            var settings = db.AppSettings.First(a => a.Id == 1);
+            if (string.IsNullOrWhiteSpace(settings.Devise)
+                || settings.Devise.Trim().Equals("MAD", StringComparison.OrdinalIgnoreCase))
+            {
+                settings.Devise = "DH";
+                db.SaveChanges();
+            }
         }
 
         if (!db.Tiers.Any(t => t.Nom == DefaultClientName))

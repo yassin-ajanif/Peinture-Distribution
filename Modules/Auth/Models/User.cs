@@ -1,4 +1,6 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using GestionCommerciale.Modules.Stock.Models;
+using GestionCommerciale.Shared.Database;
 
 namespace GestionCommerciale.Modules.Auth.Models;
 
@@ -13,4 +15,8 @@ public class User
     public DateTime CreatedAt { get; set; }
 
     public StockLocation? VirtualStock { get; set; }
+
+    /// <summary>UI label; dépôt principal admin is shown as "admin — Dépôt principal".</summary>
+    [NotMapped]
+    public string DisplayLabel => DbSeeder.FormatUserDisplayName(this);
 }

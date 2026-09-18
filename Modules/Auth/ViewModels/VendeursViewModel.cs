@@ -312,7 +312,7 @@ public partial class VendeursViewModel : BaseViewModel
 
         var cfg = await _settings.GetAsync(cancellationToken);
         var devise = CurrencyHelper.FromSettings(cfg);
-        var currency = string.IsNullOrEmpty(devise) ? "MAD" : devise;
+        var currency = string.IsNullOrEmpty(devise) ? "DH" : devise;
 
         var products = await db.Produits.AsNoTracking()
             .Where(p => produitIds.Contains(p.Id))

@@ -18,7 +18,7 @@
         <StackPanel Spacing="10">
           <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
             <TextBlock Text="{Binding Numero}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"
-                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                       MinWidth="170" TextWrapping="NoWrap"/>
             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
               <CalendarDatePicker SelectedDate="{Binding Date}"/>
             </StackPanel>
@@ -40,7 +40,7 @@
               <ComboBox MinWidth="220" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedAssignedUser, Mode=TwoWay}">
                 <ComboBox.ItemTemplate>
                   <DataTemplate DataType="auth:User">
-                    <TextBlock Text="{Binding FullName}"/>
+                    <TextBlock Text="{Binding DisplayLabel}"/>
                   </DataTemplate>
                 </ComboBox.ItemTemplate>
               </ComboBox>
@@ -76,16 +76,17 @@
         <Button Content="{Binding BtnRemoveLine}" VerticalAlignment="Center" Command="{Binding RemoveSelectedLineCommand}"/>
       </StackPanel>
       <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-        <Grid MinWidth="720" RowDefinitions="Auto,*">
+        <Grid MinWidth="820" RowDefinitions="Auto,*">
           <Border Grid.Row="0" BorderBrush="{DynamicResource CourseraBorderBrush}" BorderThickness="1" CornerRadius="8,8,0,0"
                   Background="{DynamicResource CourseraSurfaceMutedBrush}" Padding="8,8">
-            <Grid ColumnDefinitions="*,90,100,80,80,100">
+            <Grid ColumnDefinitions="*,90,100,80,80,100,100">
               <TextBlock Grid.Column="0" Text="{Binding LblDocColDesignation}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="1" Text="{Binding LblDocColQte}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="2" Text="{Binding LblDocColPuHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="3" Text="{Binding LblDocColRemise}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="4" Text="{Binding LblDocColTva}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
-              <TextBlock Grid.Column="5" Text="{Binding LblDocColMontantHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+              <TextBlock Grid.Column="5" Text="{Binding LblDocColMontantHt}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="6" Text="{Binding LblDocColMontantTtc}" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right"/>
             </Grid>
           </Border>
           <ListBox Grid.Row="1" ItemsSource="{Binding Lignes}" SelectedItem="{Binding SelectedLine}" MinHeight="200"
@@ -94,7 +95,7 @@
             <ListBox.ItemTemplate>
               <DataTemplate DataType="vm:PersonnelDocumentLineRow">
                 <Border Padding="6,2" BorderBrush="#18000000" BorderThickness="0,0,0,1">
-                  <Grid MinHeight="34" ColumnDefinitions="*,90,100,80,80,100">
+                  <Grid MinHeight="34" ColumnDefinitions="*,90,100,80,80,100,100">
                     <TextBox Grid.Column="0" Text="{Binding Designation}" Watermark="…" Padding="6,4" Margin="0,0,8,0"/>
                     <NumericUpDown Grid.Column="1" ShowButtonSpinner="False" Value="{Binding Quantite}" FormatString="0.##" Minimum="0" Increment="1"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0"/>
@@ -105,6 +106,8 @@
                     <NumericUpDown Grid.Column="4" ShowButtonSpinner="False" Value="{Binding TauxTVA}" FormatString="0.##" Minimum="0" Increment="1"
                                    HorizontalAlignment="Stretch" Margin="0,0,8,0"/>
                     <TextBlock Grid.Column="5" Text="{Binding MontantHt, StringFormat=\{0:N2\}}" VerticalAlignment="Center"
+                               HorizontalAlignment="Right" Opacity="0.9" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="6" Text="{Binding MontantTtc, StringFormat=\{0:N2\}}" VerticalAlignment="Center"
                                HorizontalAlignment="Right" Opacity="0.9"/>
                   </Grid>
                 </Border>

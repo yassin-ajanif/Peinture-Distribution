@@ -40,7 +40,7 @@ public sealed partial class ClientSoldeDisplay : ObservableObject
             if (version != _loadVersion)
                 return;
 
-            var amount = CurrencyHelper.Format(statement.SoldeActuel, string.IsNullOrWhiteSpace(devise) ? "MAD" : devise);
+            var amount = CurrencyHelper.Format(statement.SoldeActuel, string.IsNullOrWhiteSpace(devise) ? CurrencyHelper.DefaultCode : devise);
             Text = _locale.Tf("Client_SoldeFmt", amount);
         }
         catch

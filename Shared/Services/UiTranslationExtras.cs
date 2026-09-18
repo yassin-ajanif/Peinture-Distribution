@@ -439,6 +439,8 @@ internal static class UiTranslationExtras
         ["BCH_ErrAssigned"] = ("Sélectionnez l'utilisateur assigné.", "اختر المستخدم المعيّن."),
         ["BCH_ErrDepot"] = ("Sélectionnez le dépôt physique.", "اختر المستودع الفعلي."),
         ["BCH_ErrLines"] = ("Ajoutez au moins une ligne produit.", "أضف سطراً واحداً على الأقل."),
+        ["BCH_Saved"] = ("Enregistré.", "تم الحفظ."),
+        ["BDH_Saved"] = ("Enregistré.", "تم الحفظ."),
         ["BCH_ConfirmDelete"] = ("Supprimer ce bon de charge et annuler son effet stock ?", "حذف إذن الشحن وإلغاء أثره على المخزون؟"),
         ["BDH_ConfirmDelete"] = ("Supprimer ce bon de décharge et annuler son effet stock ?", "حذف إذن التفريغ وإلغاء أثره على المخزون؟"),
         ["Lbl_AssignedTo"] = ("Assigné à", "مُعيَّن لـ"),

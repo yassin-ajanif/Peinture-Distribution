@@ -95,7 +95,7 @@
                  IsEnabled="{Binding CanEdit}">
           <ComboBox.ItemTemplate>
             <DataTemplate DataType="auth:User">
-              <TextBlock Text="{Binding FullName}"/>
+              <TextBlock Text="{Binding DisplayLabel}"/>
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>

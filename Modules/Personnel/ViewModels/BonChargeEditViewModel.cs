@@ -92,6 +92,7 @@ public partial class BonChargeEditViewModel : BaseViewModel
     [ObservableProperty] private string _lblDocColRemise = string.Empty;
     [ObservableProperty] private string _lblDocColTva = string.Empty;
     [ObservableProperty] private string _lblDocColMontantHt = string.Empty;
+    [ObservableProperty] private string _lblDocColMontantTtc = string.Empty;
     [ObservableProperty] private string _lblTotals = string.Empty;
 
     [ObservableProperty] private decimal _totalHt;
@@ -195,6 +196,7 @@ public partial class BonChargeEditViewModel : BaseViewModel
         LblDocColRemise = _locale.T("DocLine_ColRemise");
         LblDocColTva = _locale.T("DocLine_ColTva");
         LblDocColMontantHt = _locale.T("DocLine_ColMontantHt");
+        LblDocColMontantTtc = _locale.T("DocLine_ColMontantTtc");
         LblTotals = _locale.T("Lbl_Totals");
         UpdateTotalLabels(TotalHt, TotalTva, TotalTtc);
     }
@@ -359,6 +361,12 @@ public partial class BonChargeEditViewModel : BaseViewModel
             return;
         }
 
+        if (DocumentTotalsHelper.IsEffectivelyZeroTotal(TotalTtc))
+        {
+            await _dialog.ShowErrorAsync(_locale.T("BCH_Title"), _locale.T("Doc_ErrZeroTtc"), cancellationToken);
+            return;
+        }
+
         await using (var dbCheck = await _dbFactory.CreateDbContextAsync(cancellationToken))
         {
             var stockLines = Lignes
@@ -445,6 +453,7 @@ public partial class BonChargeEditViewModel : BaseViewModel
 
             Numero = entity.Numero;
             await LoadAsync(BonChargeId, cancellationToken);
+            await _dialog.ShowInfoAsync(_locale.T("BCH_Title"), _locale.T("BCH_Saved"), cancellationToken);
         }
         catch (Exception ex)
         {
@@ -496,4 +505,4 @@ public partial class BonChargeEditViewModel : BaseViewModel
         list.LoadCommand.Execute(null);
     }
 }
-
+

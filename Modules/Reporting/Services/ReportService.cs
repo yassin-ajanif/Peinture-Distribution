@@ -741,6 +741,6 @@ public sealed class ReportService : IReportService
     private async Task<string> GetDeviseAsync(CancellationToken ct = default)
     {
         var cfg = await _settings.GetAsync(ct);
-        return string.IsNullOrWhiteSpace(cfg.Devise) ? "MAD" : cfg.Devise!;
+        return string.IsNullOrWhiteSpace(cfg.Devise) ? "DH" : cfg.Devise!;
     }
 }

@@ -17,7 +17,7 @@
       <Border Grid.Row="0" Padding="8,6" Background="{DynamicResource CourseraSurfaceMutedBrush}"
               CornerRadius="8,8,0,0" BorderThickness="1,1,1,0"
               BorderBrush="{DynamicResource CourseraBorderBrush}">
-        <Grid ColumnDefinitions="120,*,120,110,*">
+        <Grid ColumnDefinitions="170,*,140,110,*">
           <TextBlock Grid.Column="0" Text="{Binding ColNumero}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
           <TextBlock Grid.Column="1" Text="{Binding ColAssigned}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
           <TextBlock Grid.Column="2" Text="{Binding ColDepot}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
@@ -38,7 +38,7 @@
                             Command="{Binding #BonChargeListRoot.((vm:BonChargeListViewModel)DataContext).DeleteCommand}"/>
                 </ContextMenu>
               </Border.ContextMenu>
-              <Grid ColumnDefinitions="120,*,120,110,*">
+              <Grid ColumnDefinitions="170,*,140,110,*">
                 <TextBlock Grid.Column="0" Text="{Binding Doc.Numero}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
                 <TextBlock Grid.Column="1" Text="{Binding AssignedToNom}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
                 <TextBlock Grid.Column="2" Text="{Binding DepotNom}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
