@@ -11,6 +11,7 @@ using GestionCommerciale.Modules.Livraison.Services;
 using GestionCommerciale.Modules.Livraison.ViewModels;
 using GestionCommerciale.Modules.CommandeFournisseur.ViewModels;
 using GestionCommerciale.Modules.CommandeClient.ViewModels;
+using GestionCommerciale.Modules.Personnel.Services;
 using GestionCommerciale.Modules.Personnel.ViewModels;
 using GestionCommerciale.Modules.Reception.Services;
 using GestionCommerciale.Modules.Reception.ViewModels;
@@ -49,6 +50,7 @@ public static class DependencyInjection
         services.AddSingleton<IStockRetrievalService, StockRetrievalService>();
         services.AddSingleton<IStockMovementService, StockMovementService>();
         services.AddSingleton<IUserService, UserService>();
+        services.AddSingleton<IVendeurCaisseService, VendeurCaisseService>();
         services.AddSingleton<IBonLivraisonWorkflowService, BonLivraisonWorkflowService>();
         services.AddSingleton<IBonReceptionWorkflowService, BonReceptionWorkflowService>();
         services.AddSingleton<IFactureBlLinkService, FactureBlLinkService>();

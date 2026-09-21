@@ -51,6 +51,7 @@ public class AppDbContext : DbContext
     public DbSet<BonChargeLigne> BonChargeLignes => Set<BonChargeLigne>();
     public DbSet<BonDecharge> BonsDecharge => Set<BonDecharge>();
     public DbSet<BonDechargeLigne> BonDechargeLignes => Set<BonDechargeLigne>();
+    public DbSet<RemiseCaisse> RemisesCaisse => Set<RemiseCaisse>();
     public DbSet<AppSettingsRow> AppSettings => Set<AppSettingsRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -329,6 +330,21 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(l => l.BonDechargeId);
             e.HasIndex(l => l.ProduitId);
+        });
+
+        modelBuilder.Entity<RemiseCaisse>(e =>
+        {
+            e.ToTable("RemisesCaisse");
+            e.Ignore(r => r.CreatedByUserId);
+            e.Property(r => r.Numero).HasMaxLength(50).IsRequired();
+            e.HasIndex(r => r.Numero).IsUnique();
+            e.HasIndex(r => new { r.AssignedToUserId, r.Date });
+            e.Property(r => r.Note).HasMaxLength(1000);
+            e.Property(r => r.Mode).HasConversion<int>();
+            e.HasOne(r => r.AssignedToUser)
+                .WithMany()
+                .HasForeignKey(r => r.AssignedToUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<AppSettingsRow>(e =>
