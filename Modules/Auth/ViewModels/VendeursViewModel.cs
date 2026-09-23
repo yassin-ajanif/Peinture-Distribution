@@ -25,6 +25,7 @@ public partial class VendeursViewModel : BaseViewModel
     private readonly IAppSettingsService _settings;
     private readonly IVendeurCaisseService _caisse;
     private int _soldeLoadToken;
+    private List<VendeurStockLineRow> _sourceStockLines = [];
     private List<VendeurVenteBlRow> _sourceVenteBls = [];
     private List<VendeurEncaisseRow> _sourceEncaissements = [];
     private List<VendeurRemiseRow> _sourceRemises = [];
@@ -56,10 +57,13 @@ public partial class VendeursViewModel : BaseViewModel
         Pagination = new PaginationHelper(() => _ = LoadAsync(CancellationToken.None));
         CaissePagination = new PaginationHelper(ApplyCaisseDetailPage);
         CaissePagination.PageSize = 10;
+        StockPagination = new PaginationHelper(ApplyStockPage);
+        StockPagination.PageSize = 10;
     }
 
     public PaginationHelper Pagination { get; }
     public PaginationHelper CaissePagination { get; }
+    public PaginationHelper StockPagination { get; }
     public ObservableCollection<User> Vendeurs { get; } = [];
     public ObservableCollection<VendeurStockLineRow> StockLines { get; } = [];
     public ObservableCollection<VendeurRemiseRow> RemiseLines { get; } = [];
@@ -164,6 +168,7 @@ public partial class VendeursViewModel : BaseViewModel
     public bool ShowCaisseDetailToolbar => SelectedCaisseDetailTab != VendeurCaisseDetailTab.None;
     public bool ShowCaisseDateFilter => IsCaisseExpanded;
     public bool ShowCaissePagination => SelectedCaisseDetailTab != VendeurCaisseDetailTab.None && CaissePagination.TotalCount > 0;
+    public bool ShowStockPagination => IsStockExpanded && StockPagination.TotalCount > 0;
     public bool ShowFiche => Selected is not null || IsNewDraft;
     public bool IsDepotPrincipalSelected => DbSeeder.IsDepotPrincipalAdmin(Selected);
 
@@ -218,6 +223,9 @@ public partial class VendeursViewModel : BaseViewModel
         LblNote = _locale.T("Lbl_Note");
         UpdateBtnFilterCaisseDateText();
     }
+
+    partial void OnIsStockExpandedChanged(bool value) =>
+        OnPropertyChanged(nameof(ShowStockPagination));
 
     partial void OnIsCaisseExpandedChanged(bool value)
     {
@@ -390,12 +398,26 @@ public partial class VendeursViewModel : BaseViewModel
     private void ClearSolde()
     {
         StockLines.Clear();
+        _sourceStockLines = [];
         HasStockLines = false;
         QtyTotalLabel = "0,00";
         ValVenteTtcLabel = "—";
+        StockPagination.Reset(0);
         IsStockExpanded = true;
         IsCaisseExpanded = false;
         ClearCaisse();
+    }
+
+    private void ApplyStockPage()
+    {
+        StockPagination.TotalCount = _sourceStockLines.Count;
+        HasStockLines = _sourceStockLines.Count > 0;
+
+        StockLines.Clear();
+        foreach (var row in _sourceStockLines.Skip(StockPagination.Skip).Take(StockPagination.PageSize))
+            StockLines.Add(row);
+
+        OnPropertyChanged(nameof(ShowStockPagination));
     }
 
     private void ClearCaisse()
@@ -495,6 +517,7 @@ public partial class VendeursViewModel : BaseViewModel
 
         decimal qtyTotal = 0m;
         decimal valVenteTtc = 0m;
+        var stockRows = new List<VendeurStockLineRow>();
 
         foreach (var p in products.OrderBy(x => x.Reference))
         {
@@ -506,7 +529,7 @@ public partial class VendeursViewModel : BaseViewModel
             qtyTotal += qty;
             valVenteTtc += venteTtc;
 
-            StockLines.Add(new VendeurStockLineRow
+            stockRows.Add(new VendeurStockLineRow
             {
                 Reference = p.Reference,
                 Designation = p.Designation,
@@ -516,7 +539,9 @@ public partial class VendeursViewModel : BaseViewModel
             });
         }
 
-        HasStockLines = StockLines.Count > 0;
+        _sourceStockLines = stockRows;
+        StockPagination.CurrentPage = 1;
+        ApplyStockPage();
         QtyTotalLabel = qtyTotal.ToString("N2");
         ValVenteTtcLabel = CurrencyHelper.Format(valVenteTtc, currency);
 

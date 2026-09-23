@@ -124,8 +124,7 @@
                         <TextBlock Grid.Column="3" Text="{Binding ColValVenteTtc}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0" Foreground="#047857"/>
                       </Grid>
                     </Border>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding StockLines}" BorderThickness="0" Background="Transparent"
-                             MaxHeight="280">
+                    <ListBox Grid.Row="1" ItemsSource="{Binding StockLines}" BorderThickness="0" Background="Transparent">
                       <ListBox.Styles>
                         <Style Selector="ListBoxItem">
                           <Setter Property="Padding" Value="10,6"/>
@@ -146,6 +145,10 @@
                       </ListBox.ItemTemplate>
                     </ListBox>
                   </Grid>
+
+                  <StackPanel IsVisible="{Binding ShowStockPagination}">
+                    <shared:ListPaginationBar DataContext="{Binding StockPagination}"/>
+                  </StackPanel>
                 </StackPanel>
               </StackPanel>
             </Border>
