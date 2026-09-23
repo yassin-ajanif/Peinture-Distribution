@@ -116,6 +116,7 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private string _colRemiseDate = string.Empty;
     [ObservableProperty] private string _colRemiseMode = string.Empty;
     [ObservableProperty] private string _colRemiseMontant = string.Empty;
+    [ObservableProperty] private string _colRemiseObservation = string.Empty;
     [ObservableProperty] private string _emptyRemises = string.Empty;
     [ObservableProperty] private string _emptyVentes = string.Empty;
     [ObservableProperty] private string _emptyEncaisse = string.Empty;
@@ -213,6 +214,7 @@ public partial class VendeursViewModel : BaseViewModel
         ColRemiseDate = _locale.T("Charges_LblDate");
         ColRemiseMode = _locale.T("Lbl_Mode");
         ColRemiseMontant = _locale.T("Lbl_Montant");
+        ColRemiseObservation = _locale.T("ClientLedger_ColObservation");
         EmptyRemises = _locale.T("Lbl_VendeurRemisesEmpty");
         EmptyVentes = _locale.T("Lbl_VendeurVentesEmpty");
         EmptyEncaisse = _locale.T("Lbl_VendeurEncaisseEmpty");
@@ -220,7 +222,7 @@ public partial class VendeursViewModel : BaseViewModel
         ColClient = _locale.T("Lbl_ColNom");
         ColDate = _locale.T("Charges_LblDate");
         ColMontant = _locale.T("Lbl_Montant");
-        LblNote = _locale.T("Lbl_Note");
+        LblNote = _locale.T("ClientLedger_ColObservation");
         UpdateBtnFilterCaisseDateText();
     }
 

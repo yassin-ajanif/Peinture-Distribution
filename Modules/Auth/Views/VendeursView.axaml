@@ -354,11 +354,12 @@
                   <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasRemiseLines}">
                     <Border Background="#12000000" CornerRadius="4,4,0,0" Padding="10,8"
                             BorderBrush="#20000000" BorderThickness="0,0,0,1">
-                      <Grid ColumnDefinitions="110,90,*,120">
+                      <Grid ColumnDefinitions="100,80,90,*,100">
                         <TextBlock Text="{Binding ColRemiseNumero}" FontWeight="SemiBold" FontSize="11"/>
                         <TextBlock Grid.Column="1" Text="{Binding ColRemiseDate}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
                         <TextBlock Grid.Column="2" Text="{Binding ColRemiseMode}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
-                        <TextBlock Grid.Column="3" Text="{Binding ColRemiseMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="3" Text="{Binding ColRemiseObservation}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="4" Text="{Binding ColRemiseMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
                       </Grid>
                     </Border>
                     <ListBox x:Name="RemiseListBox" Grid.Row="1" Classes="caisse-detail-list"
@@ -370,12 +371,14 @@
                              LostFocus="OnRemiseListLostFocus">
                       <ListBox.ItemTemplate>
                         <DataTemplate DataType="personnel:VendeurRemiseRow">
-                          <Grid ColumnDefinitions="110,90,*,120">
+                          <Grid ColumnDefinitions="100,80,90,*,100">
                             <TextBlock Text="{Binding Numero}" FontSize="11" TextTrimming="CharacterEllipsis"/>
                             <TextBlock Grid.Column="1" Text="{Binding DateLabel}" FontSize="11" Margin="8,0,0,0"/>
                             <TextBlock Grid.Column="2" Text="{Binding ModeLabel}" FontSize="11" Margin="8,0,0,0"
                                        TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Grid.Column="3" Text="{Binding MontantLabel}" FontSize="11" TextAlignment="Right"
+                            <TextBlock Grid.Column="3" Text="{Binding Note}" FontSize="11" Margin="8,0,0,0"
+                                       TextTrimming="CharacterEllipsis" Opacity="0.85"/>
+                            <TextBlock Grid.Column="4" Text="{Binding MontantLabel}" FontSize="11" TextAlignment="Right"
                                        Margin="8,0,0,0" FontWeight="SemiBold" Foreground="#166534"/>
                           </Grid>
                         </DataTemplate>
