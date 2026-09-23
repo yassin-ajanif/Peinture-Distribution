@@ -8,6 +8,20 @@
              xmlns:fact="using:GestionCommerciale.Modules.Facturation.Models"
              x:Class="GestionCommerciale.Modules.Auth.Views.VendeursView"
              x:DataType="vm:VendeursViewModel">
+  <UserControl.Styles>
+    <Style Selector="ListBox.caisse-detail-list ListBoxItem">
+      <Setter Property="Padding" Value="10,6"/>
+    </Style>
+    <Style Selector="ListBox.caisse-detail-list ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#BBF7D0"/>
+    </Style>
+    <Style Selector="ListBox.caisse-detail-list:not(:focus-within) ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="ItemsControl.caisse-detail-list > ContentPresenter">
+      <Setter Property="Padding" Value="10,6"/>
+    </Style>
+  </UserControl.Styles>
   <Grid ColumnDefinitions="420,*">
     <Border Padding="12" CornerRadius="8" BorderBrush="#28000000" BorderThickness="1"
             Background="#06000000">
@@ -173,7 +187,8 @@
                           MinWidth="140" Padding="8,6" Margin="12,0,0,0" VerticalAlignment="Center"/>
                   <Button Grid.Column="3" Content="{Binding BtnNewRemise}" Command="{Binding ToggleRemiseFormCommand}"
                           MinWidth="120" Margin="0,0,8,0"/>
-                  <Button Grid.Column="4" Content="{Binding BtnDeleteRemise}" Command="{Binding DeleteRemiseCommand}"
+                  <Button x:Name="DeleteRemiseButton" Grid.Column="4" Content="{Binding BtnDeleteRemise}"
+                          Command="{Binding DeleteRemiseCommand}"
                           IsEnabled="{Binding CanDeleteRemise}" Classes="pos-delete" MinWidth="100"/>
                 </Grid>
 
@@ -284,14 +299,9 @@
                         <TextBlock Grid.Column="3" Text="{Binding ColMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
                       </Grid>
                     </Border>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding VenteBlLines}" BorderThickness="0"
-                             Background="Transparent">
-                      <ListBox.Styles>
-                        <Style Selector="ListBoxItem">
-                          <Setter Property="Padding" Value="10,6"/>
-                        </Style>
-                      </ListBox.Styles>
-                      <ListBox.ItemTemplate>
+                    <ItemsControl Grid.Row="1" Classes="caisse-detail-list"
+                                  ItemsSource="{Binding VenteBlLines}">
+                      <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="personnel:VendeurVenteBlRow">
                           <Grid ColumnDefinitions="110,90,*,120">
                             <TextBlock Text="{Binding Numero}" FontSize="11" TextTrimming="CharacterEllipsis"/>
@@ -302,8 +312,8 @@
                                        Margin="8,0,0,0" FontWeight="SemiBold" Foreground="#92400E"/>
                           </Grid>
                         </DataTemplate>
-                      </ListBox.ItemTemplate>
-                    </ListBox>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                   </Grid>
                 </StackPanel>
 
@@ -320,14 +330,9 @@
                         <TextBlock Grid.Column="3" Text="{Binding ColMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
                       </Grid>
                     </Border>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding EncaisseLines}" BorderThickness="0"
-                             Background="Transparent">
-                      <ListBox.Styles>
-                        <Style Selector="ListBoxItem">
-                          <Setter Property="Padding" Value="10,6"/>
-                        </Style>
-                      </ListBox.Styles>
-                      <ListBox.ItemTemplate>
+                    <ItemsControl Grid.Row="1" Classes="caisse-detail-list"
+                                  ItemsSource="{Binding EncaisseLines}">
+                      <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="personnel:VendeurEncaisseRow">
                           <Grid ColumnDefinitions="110,90,*,120">
                             <TextBlock Text="{Binding BlNumero}" FontSize="11" TextTrimming="CharacterEllipsis"/>
@@ -338,8 +343,8 @@
                                        Margin="8,0,0,0" FontWeight="SemiBold" Foreground="#3730A3"/>
                           </Grid>
                         </DataTemplate>
-                      </ListBox.ItemTemplate>
-                    </ListBox>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                   </Grid>
                 </StackPanel>
 
@@ -356,13 +361,13 @@
                         <TextBlock Grid.Column="3" Text="{Binding ColRemiseMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
                       </Grid>
                     </Border>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding RemiseLines}" SelectedItem="{Binding SelectedRemise}"
-                             BorderThickness="0" Background="Transparent">
-                      <ListBox.Styles>
-                        <Style Selector="ListBoxItem">
-                          <Setter Property="Padding" Value="10,6"/>
-                        </Style>
-                      </ListBox.Styles>
+                    <ListBox x:Name="RemiseListBox" Grid.Row="1" Classes="caisse-detail-list"
+                             ItemsSource="{Binding RemiseLines}"
+                             SelectedItem="{Binding SelectedRemise, Mode=TwoWay}"
+                             BorderThickness="0" Background="Transparent"
+                             PointerPressed="OnRemiseListPointerPressed"
+                             SelectionChanged="OnRemiseListSelectionChanged"
+                             LostFocus="OnRemiseListLostFocus">
                       <ListBox.ItemTemplate>
                         <DataTemplate DataType="personnel:VendeurRemiseRow">
                           <Grid ColumnDefinitions="110,90,*,120">

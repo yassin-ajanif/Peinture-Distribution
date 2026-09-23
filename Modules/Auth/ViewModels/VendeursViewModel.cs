@@ -236,6 +236,9 @@ public partial class VendeursViewModel : BaseViewModel
 
     partial void OnSelectedCaisseDetailTabChanged(VendeurCaisseDetailTab value)
     {
+        if (value != VendeurCaisseDetailTab.Remis)
+            SelectedRemise = null;
+
         OnPropertyChanged(nameof(ShowVentesDetail));
         OnPropertyChanged(nameof(ShowEncaisseDetail));
         OnPropertyChanged(nameof(ShowRemisDetail));
