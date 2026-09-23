@@ -27,6 +27,12 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
+  <!-- Standalone scripts (e.g. SeedAhmedTestBls) must not compile into this app. -->
+  <ItemGroup>
+    <Compile Remove="scripts/**" />
+    <None Include="scripts/**" Exclude="scripts/**/obj/**;scripts/**/bin/**" />
+  </ItemGroup>
+
   <!-- dotnet watch: rebuild when Avalonia views change (not only .cs) -->
   <ItemGroup>
     <Watch Include="**\*.axaml" />

@@ -29,6 +29,8 @@ public sealed class VendeurEncaisseRow
     public int PaiementId { get; init; }
     public int BonLivraisonId { get; init; }
     public string BlNumero { get; init; } = string.Empty;
+    /// <summary>BL date — used for caisse period filters (same basis as Ventes).</summary>
+    public DateTime BlDate { get; init; }
     public DateTime Date { get; init; }
     public ModePaiement Mode { get; init; }
     public decimal Montant { get; init; }

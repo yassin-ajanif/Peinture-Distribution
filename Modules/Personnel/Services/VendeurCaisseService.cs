@@ -67,6 +67,7 @@ public sealed class VendeurCaisseService : IVendeurCaisseService
                 p.Id,
                 p.BonLivraisonId,
                 b.Numero,
+                BlDate = b.Date,
                 p.Date,
                 p.Mode,
                 p.Montant
@@ -101,6 +102,7 @@ public sealed class VendeurCaisseService : IVendeurCaisseService
             PaiementId = p.Id,
             BonLivraisonId = p.BonLivraisonId,
             BlNumero = p.Numero,
+            BlDate = p.BlDate,
             Date = p.Date,
             Mode = p.Mode,
             Montant = p.Montant,

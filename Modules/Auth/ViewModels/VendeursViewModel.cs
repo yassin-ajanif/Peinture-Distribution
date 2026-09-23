@@ -25,6 +25,15 @@ public partial class VendeursViewModel : BaseViewModel
     private readonly IAppSettingsService _settings;
     private readonly IVendeurCaisseService _caisse;
     private int _soldeLoadToken;
+    private List<VendeurVenteBlRow> _sourceVenteBls = [];
+    private List<VendeurEncaisseRow> _sourceEncaissements = [];
+    private List<VendeurRemiseRow> _sourceRemises = [];
+    private decimal _totalVentes;
+    private decimal _totalEncaisse;
+    private decimal _totalRemis;
+    private string _caisseCurrency = "DH";
+    private DateTime? _caisseDateFrom;
+    private DateTime? _caisseDateTo;
 
     public VendeursViewModel(
         IUserService users,
@@ -45,9 +54,12 @@ public partial class VendeursViewModel : BaseViewModel
         _locale.CultureApplied += (_, _) => RefreshLabels();
         RefreshLabels();
         Pagination = new PaginationHelper(() => _ = LoadAsync(CancellationToken.None));
+        CaissePagination = new PaginationHelper(ApplyCaisseDetailPage);
+        CaissePagination.PageSize = 10;
     }
 
     public PaginationHelper Pagination { get; }
+    public PaginationHelper CaissePagination { get; }
     public ObservableCollection<User> Vendeurs { get; } = [];
     public ObservableCollection<VendeurStockLineRow> StockLines { get; } = [];
     public ObservableCollection<VendeurRemiseRow> RemiseLines { get; } = [];
@@ -108,6 +120,7 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private string _colDate = string.Empty;
     [ObservableProperty] private string _colMontant = string.Empty;
     [ObservableProperty] private string _lblNote = string.Empty;
+    [ObservableProperty] private string _btnFilterCaisseDate = string.Empty;
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private User? _selected;
@@ -148,6 +161,9 @@ public partial class VendeursViewModel : BaseViewModel
     public bool IsVentesBadgeSelected => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Ventes;
     public bool IsEncaisseBadgeSelected => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Encaisse;
     public bool IsRemisBadgeSelected => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Remis;
+    public bool ShowCaisseDetailToolbar => SelectedCaisseDetailTab != VendeurCaisseDetailTab.None;
+    public bool ShowCaisseDateFilter => IsCaisseExpanded;
+    public bool ShowCaissePagination => SelectedCaisseDetailTab != VendeurCaisseDetailTab.None && CaissePagination.TotalCount > 0;
     public bool ShowFiche => Selected is not null || IsNewDraft;
     public bool IsDepotPrincipalSelected => DbSeeder.IsDepotPrincipalAdmin(Selected);
 
@@ -200,6 +216,14 @@ public partial class VendeursViewModel : BaseViewModel
         ColDate = _locale.T("Charges_LblDate");
         ColMontant = _locale.T("Lbl_Montant");
         LblNote = _locale.T("Lbl_Note");
+        UpdateBtnFilterCaisseDateText();
+    }
+
+    partial void OnIsCaisseExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowCaisseDateFilter));
+        if (value)
+            UpdateCaisseChipLabels();
     }
 
     partial void OnSelectedCaisseDetailTabChanged(VendeurCaisseDetailTab value)
@@ -210,6 +234,9 @@ public partial class VendeursViewModel : BaseViewModel
         OnPropertyChanged(nameof(IsVentesBadgeSelected));
         OnPropertyChanged(nameof(IsEncaisseBadgeSelected));
         OnPropertyChanged(nameof(IsRemisBadgeSelected));
+        OnPropertyChanged(nameof(ShowCaisseDetailToolbar));
+        CaissePagination.CurrentPage = 1;
+        ApplyCaisseDetailPage();
     }
 
     partial void OnSearchTextChanged(string value)
@@ -390,6 +417,16 @@ public partial class VendeursViewModel : BaseViewModel
         RemiseMode = ModePaiement.Especes;
         RemiseNote = string.Empty;
         SelectedRemise = null;
+        _sourceVenteBls = [];
+        _sourceEncaissements = [];
+        _sourceRemises = [];
+        _totalVentes = 0m;
+        _totalEncaisse = 0m;
+        _totalRemis = 0m;
+        _caisseDateFrom = null;
+        _caisseDateTo = null;
+        CaissePagination.Reset(0);
+        UpdateBtnFilterCaisseDateText();
     }
 
     private async Task LoadSoldeAsync(int userId, CancellationToken cancellationToken)
@@ -500,26 +537,159 @@ public partial class VendeursViewModel : BaseViewModel
         if (token != _soldeLoadToken)
             return;
 
-        VentesLabel = CurrencyHelper.Format(summary.Ventes, currency);
-        EncaisseLabel = CurrencyHelper.Format(summary.Encaisse, currency);
-        RemisLabel = CurrencyHelper.Format(summary.Remis, currency);
-        ARemettreLabel = CurrencyHelper.Format(summary.ARemettre, currency);
+        _caisseCurrency = currency;
+        _totalVentes = summary.Ventes;
+        _totalEncaisse = summary.Encaisse;
+        _totalRemis = summary.Remis;
+        _sourceVenteBls = summary.VenteBls.ToList();
+        _sourceEncaissements = summary.Encaissements.ToList();
+        _sourceRemises = summary.Remises.ToList();
+
+        if (SelectedCaisseDetailTab != VendeurCaisseDetailTab.None)
+            ApplyCaisseDetailPage();
+        else
+            UpdateCaisseChipLabels();
+    }
+
+    private void UpdateBtnFilterCaisseDateText()
+    {
+        if (_caisseDateFrom.HasValue && _caisseDateTo.HasValue)
+            BtnFilterCaisseDate = $"{_caisseDateFrom:dd/MM/yy} — {_caisseDateTo:dd/MM/yy}";
+        else
+            BtnFilterCaisseDate = _locale.T("Btn_FilterDate");
+    }
+
+    private bool InCaisseDateRange(DateTime date)
+    {
+        var d = date.Date;
+        if (_caisseDateFrom.HasValue && d < _caisseDateFrom.Value.Date)
+            return false;
+        if (_caisseDateTo.HasValue && d > _caisseDateTo.Value.Date)
+            return false;
+        return true;
+    }
+
+    private bool HasCaisseDateFilter() => _caisseDateFrom.HasValue && _caisseDateTo.HasValue;
+
+    private bool IsVenteBlInCaisseDateRange(VendeurVenteBlRow row) => InCaisseDateRange(row.Date);
+
+    private bool IsEncaisseInCaisseDateRange(VendeurEncaisseRow row) => InCaisseDateRange(row.BlDate);
+
+    private bool IsRemiseInCaisseDateRange(VendeurRemiseRow row) => InCaisseDateRange(row.Date);
+
+    private void UpdateCaisseChipLabels()
+    {
+        decimal ventes;
+        decimal encaisse;
+        decimal remis;
+
+        if (HasCaisseDateFilter())
+        {
+            ventes = _sourceVenteBls.Where(IsVenteBlInCaisseDateRange).Sum(r => r.Montant);
+            encaisse = _sourceEncaissements.Where(IsEncaisseInCaisseDateRange).Sum(r => r.Montant);
+            remis = _sourceRemises.Where(IsRemiseInCaisseDateRange).Sum(r => r.Montant);
+        }
+        else
+        {
+            ventes = _totalVentes;
+            encaisse = _totalEncaisse;
+            remis = _totalRemis;
+        }
+
+        VentesLabel = CurrencyHelper.Format(ventes, _caisseCurrency);
+        EncaisseLabel = CurrencyHelper.Format(encaisse, _caisseCurrency);
+        RemisLabel = CurrencyHelper.Format(remis, _caisseCurrency);
+        ARemettreLabel = CurrencyHelper.Format(ventes - remis, _caisseCurrency);
+    }
+
+    private void ApplyCaisseDetailPage()
+    {
+        UpdateCaisseChipLabels();
+
+        switch (SelectedCaisseDetailTab)
+        {
+            case VendeurCaisseDetailTab.Ventes:
+                ApplyVenteBlPage();
+                break;
+            case VendeurCaisseDetailTab.Encaisse:
+                ApplyEncaissePage();
+                break;
+            case VendeurCaisseDetailTab.Remis:
+                ApplyRemisePage();
+                break;
+            default:
+                VenteBlLines.Clear();
+                EncaisseLines.Clear();
+                RemiseLines.Clear();
+                HasVenteBlLines = false;
+                HasEncaisseLines = false;
+                HasRemiseLines = false;
+                CaissePagination.TotalCount = 0;
+                break;
+        }
+
+        OnPropertyChanged(nameof(ShowCaissePagination));
+    }
+
+    private void ApplyVenteBlPage()
+    {
+        var filtered = _sourceVenteBls.Where(IsVenteBlInCaisseDateRange).ToList();
+        CaissePagination.TotalCount = filtered.Count;
+        HasVenteBlLines = filtered.Count > 0;
 
         VenteBlLines.Clear();
-        foreach (var row in summary.VenteBls)
+        foreach (var row in filtered.Skip(CaissePagination.Skip).Take(CaissePagination.PageSize))
             VenteBlLines.Add(row);
+    }
+
+    private void ApplyEncaissePage()
+    {
+        var filtered = _sourceEncaissements.Where(IsEncaisseInCaisseDateRange).ToList();
+        CaissePagination.TotalCount = filtered.Count;
+        HasEncaisseLines = filtered.Count > 0;
 
         EncaisseLines.Clear();
-        foreach (var row in summary.Encaissements)
+        foreach (var row in filtered.Skip(CaissePagination.Skip).Take(CaissePagination.PageSize))
             EncaisseLines.Add(row);
+    }
 
+    private void ApplyRemisePage()
+    {
+        var filtered = _sourceRemises.Where(IsRemiseInCaisseDateRange).ToList();
+        CaissePagination.TotalCount = filtered.Count;
+        HasRemiseLines = filtered.Count > 0;
+
+        var selectedId = SelectedRemise?.Id;
         RemiseLines.Clear();
-        foreach (var row in summary.Remises)
+        foreach (var row in filtered.Skip(CaissePagination.Skip).Take(CaissePagination.PageSize))
             RemiseLines.Add(row);
 
-        HasVenteBlLines = VenteBlLines.Count > 0;
-        HasEncaisseLines = EncaisseLines.Count > 0;
-        HasRemiseLines = RemiseLines.Count > 0;
+        if (selectedId is int id)
+            SelectedRemise = RemiseLines.FirstOrDefault(r => r.Id == id);
+    }
+
+    [RelayCommand]
+    private async Task FilterCaisseDateAsync(CancellationToken cancellationToken)
+    {
+        var range = await _dialog.PickDateRangeAsync(_locale.T("Btn_FilterDate"), cancellationToken);
+        if (range == null)
+            return;
+
+        if (range.Value.from == DateTime.MinValue && range.Value.to == DateTime.MinValue)
+        {
+            _caisseDateFrom = null;
+            _caisseDateTo = null;
+        }
+        else
+        {
+            _caisseDateFrom = range.Value.from;
+            _caisseDateTo = range.Value.to;
+        }
+
+        UpdateBtnFilterCaisseDateText();
+        CaissePagination.CurrentPage = 1;
+        UpdateCaisseChipLabels();
+        ApplyCaisseDetailPage();
     }
 
     [RelayCommand]
