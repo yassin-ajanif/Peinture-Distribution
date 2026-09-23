@@ -51,6 +51,8 @@ public partial class VendeursViewModel : BaseViewModel
     public ObservableCollection<User> Vendeurs { get; } = [];
     public ObservableCollection<VendeurStockLineRow> StockLines { get; } = [];
     public ObservableCollection<VendeurRemiseRow> RemiseLines { get; } = [];
+    public ObservableCollection<VendeurVenteBlRow> VenteBlLines { get; } = [];
+    public ObservableCollection<VendeurEncaisseRow> EncaisseLines { get; } = [];
     public IReadOnlyList<ModePaiement> RemiseModes { get; } =
     [
         ModePaiement.Especes,
@@ -91,6 +93,7 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private string _lblRemiseMode = string.Empty;
     [ObservableProperty] private string _lblRemiseMontant = string.Empty;
     [ObservableProperty] private string _btnSaveRemise = string.Empty;
+    [ObservableProperty] private string _btnCancelRemise = string.Empty;
     [ObservableProperty] private string _btnNewRemise = string.Empty;
     [ObservableProperty] private string _btnDeleteRemise = string.Empty;
     [ObservableProperty] private string _colRemiseNumero = string.Empty;
@@ -98,6 +101,12 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private string _colRemiseMode = string.Empty;
     [ObservableProperty] private string _colRemiseMontant = string.Empty;
     [ObservableProperty] private string _emptyRemises = string.Empty;
+    [ObservableProperty] private string _emptyVentes = string.Empty;
+    [ObservableProperty] private string _emptyEncaisse = string.Empty;
+    [ObservableProperty] private string _colBlNumero = string.Empty;
+    [ObservableProperty] private string _colClient = string.Empty;
+    [ObservableProperty] private string _colDate = string.Empty;
+    [ObservableProperty] private string _colMontant = string.Empty;
     [ObservableProperty] private string _lblNote = string.Empty;
 
     [ObservableProperty] private string _searchText = string.Empty;
@@ -116,6 +125,9 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private string _remisLabel = "—";
     [ObservableProperty] private string _aRemettreLabel = "—";
     [ObservableProperty] private bool _hasRemiseLines;
+    [ObservableProperty] private bool _hasVenteBlLines;
+    [ObservableProperty] private bool _hasEncaisseLines;
+    [ObservableProperty] private VendeurCaisseDetailTab _selectedCaisseDetailTab = VendeurCaisseDetailTab.None;
     [ObservableProperty] private bool _showRemiseForm;
     [ObservableProperty] private DateTime _remiseDate = DateTime.Today;
     [ObservableProperty] private decimal _remiseMontant;
@@ -130,6 +142,12 @@ public partial class VendeursViewModel : BaseViewModel
     public bool ShowSolde => Selected is not null && !IsNewDraft;
     public bool ShowCaisse => Selected is not null && !IsNewDraft && !IsDepotPrincipalSelected;
     public bool CanDeleteRemise => SelectedRemise is not null;
+    public bool ShowVentesDetail => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Ventes;
+    public bool ShowEncaisseDetail => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Encaisse;
+    public bool ShowRemisDetail => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Remis;
+    public bool IsVentesBadgeSelected => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Ventes;
+    public bool IsEncaisseBadgeSelected => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Encaisse;
+    public bool IsRemisBadgeSelected => SelectedCaisseDetailTab == VendeurCaisseDetailTab.Remis;
     public bool ShowFiche => Selected is not null || IsNewDraft;
     public bool IsDepotPrincipalSelected => DbSeeder.IsDepotPrincipalAdmin(Selected);
 
@@ -167,6 +185,7 @@ public partial class VendeursViewModel : BaseViewModel
         LblRemiseMode = _locale.T("Lbl_Mode");
         LblRemiseMontant = _locale.T("Lbl_Montant");
         BtnSaveRemise = _locale.T("Btn_Save");
+        BtnCancelRemise = _locale.T("Btn_Cancel");
         BtnNewRemise = _locale.T("Lbl_VendeurRemiseNew");
         BtnDeleteRemise = _locale.T("Btn_Delete");
         ColRemiseNumero = _locale.T("Lbl_ColRef");
@@ -174,7 +193,23 @@ public partial class VendeursViewModel : BaseViewModel
         ColRemiseMode = _locale.T("Lbl_Mode");
         ColRemiseMontant = _locale.T("Lbl_Montant");
         EmptyRemises = _locale.T("Lbl_VendeurRemisesEmpty");
+        EmptyVentes = _locale.T("Lbl_VendeurVentesEmpty");
+        EmptyEncaisse = _locale.T("Lbl_VendeurEncaisseEmpty");
+        ColBlNumero = _locale.T("Lbl_ColRef");
+        ColClient = _locale.T("Lbl_ColNom");
+        ColDate = _locale.T("Charges_LblDate");
+        ColMontant = _locale.T("Lbl_Montant");
         LblNote = _locale.T("Lbl_Note");
+    }
+
+    partial void OnSelectedCaisseDetailTabChanged(VendeurCaisseDetailTab value)
+    {
+        OnPropertyChanged(nameof(ShowVentesDetail));
+        OnPropertyChanged(nameof(ShowEncaisseDetail));
+        OnPropertyChanged(nameof(ShowRemisDetail));
+        OnPropertyChanged(nameof(IsVentesBadgeSelected));
+        OnPropertyChanged(nameof(IsEncaisseBadgeSelected));
+        OnPropertyChanged(nameof(IsRemisBadgeSelected));
     }
 
     partial void OnSearchTextChanged(string value)
@@ -339,7 +374,12 @@ public partial class VendeursViewModel : BaseViewModel
     private void ClearCaisse()
     {
         RemiseLines.Clear();
+        VenteBlLines.Clear();
+        EncaisseLines.Clear();
         HasRemiseLines = false;
+        HasVenteBlLines = false;
+        HasEncaisseLines = false;
+        SelectedCaisseDetailTab = VendeurCaisseDetailTab.None;
         VentesLabel = "—";
         EncaisseLabel = "—";
         RemisLabel = "—";
@@ -465,11 +505,40 @@ public partial class VendeursViewModel : BaseViewModel
         RemisLabel = CurrencyHelper.Format(summary.Remis, currency);
         ARemettreLabel = CurrencyHelper.Format(summary.ARemettre, currency);
 
+        VenteBlLines.Clear();
+        foreach (var row in summary.VenteBls)
+            VenteBlLines.Add(row);
+
+        EncaisseLines.Clear();
+        foreach (var row in summary.Encaissements)
+            EncaisseLines.Add(row);
+
         RemiseLines.Clear();
         foreach (var row in summary.Remises)
             RemiseLines.Add(row);
 
+        HasVenteBlLines = VenteBlLines.Count > 0;
+        HasEncaisseLines = EncaisseLines.Count > 0;
         HasRemiseLines = RemiseLines.Count > 0;
+    }
+
+    [RelayCommand]
+    private void SelectCaisseVentes() => ToggleCaisseDetail(VendeurCaisseDetailTab.Ventes);
+
+    [RelayCommand]
+    private void SelectCaisseEncaisse() => ToggleCaisseDetail(VendeurCaisseDetailTab.Encaisse);
+
+    [RelayCommand]
+    private void SelectCaisseRemis() => ToggleCaisseDetail(VendeurCaisseDetailTab.Remis);
+
+    private void ToggleCaisseDetail(VendeurCaisseDetailTab tab)
+    {
+        IsCaisseExpanded = true;
+        IsStockExpanded = false;
+        ShowRemiseForm = false;
+        SelectedCaisseDetailTab = SelectedCaisseDetailTab == tab
+            ? VendeurCaisseDetailTab.None
+            : tab;
     }
 
     [RelayCommand]
@@ -493,6 +562,7 @@ public partial class VendeursViewModel : BaseViewModel
         {
             IsCaisseExpanded = false;
             ShowRemiseForm = false;
+            SelectedCaisseDetailTab = VendeurCaisseDetailTab.None;
             return;
         }
 
@@ -503,12 +573,25 @@ public partial class VendeursViewModel : BaseViewModel
     [RelayCommand]
     private void ToggleRemiseForm()
     {
-        ShowRemiseForm = !ShowRemiseForm;
         if (ShowRemiseForm)
         {
-            IsCaisseExpanded = true;
-            IsStockExpanded = false;
+            CloseRemiseForm();
+            return;
         }
+
+        ShowRemiseForm = true;
+        IsCaisseExpanded = true;
+        IsStockExpanded = false;
+    }
+
+    [RelayCommand]
+    private void CloseRemiseForm()
+    {
+        ShowRemiseForm = false;
+        RemiseMontant = 0m;
+        RemiseNote = string.Empty;
+        RemiseDate = DateTime.Today;
+        RemiseMode = ModePaiement.Especes;
     }
 
     [RelayCommand]

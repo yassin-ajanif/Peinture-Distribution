@@ -171,24 +171,45 @@
                 </Grid>
 
                 <Grid ColumnDefinitions="*,*,*,*">
-                  <Border Background="#FEF3C7" CornerRadius="8" Padding="10,8" Margin="0,0,6,0">
-                    <StackPanel Spacing="2">
-                      <TextBlock Text="{Binding LblVentes}" FontSize="11" Foreground="#B45309"/>
-                      <TextBlock Text="{Binding VentesLabel}" FontSize="15" FontWeight="Bold" Foreground="#92400E"/>
-                    </StackPanel>
-                  </Border>
-                  <Border Grid.Column="1" Background="#E0E7FF" CornerRadius="8" Padding="10,8" Margin="0,0,6,0">
-                    <StackPanel Spacing="2">
-                      <TextBlock Text="{Binding LblEncaisse}" FontSize="11" Foreground="#4338CA"/>
-                      <TextBlock Text="{Binding EncaisseLabel}" FontSize="15" FontWeight="Bold" Foreground="#3730A3"/>
-                    </StackPanel>
-                  </Border>
-                  <Border Grid.Column="2" Background="#DCFCE7" CornerRadius="8" Padding="10,8" Margin="0,0,6,0">
-                    <StackPanel Spacing="2">
-                      <TextBlock Text="{Binding LblRemis}" FontSize="11" Foreground="#15803D"/>
-                      <TextBlock Text="{Binding RemisLabel}" FontSize="15" FontWeight="Bold" Foreground="#166534"/>
-                    </StackPanel>
-                  </Border>
+                  <Button Grid.Column="0" Command="{Binding SelectCaisseVentesCommand}"
+                          Background="Transparent" BorderThickness="0" Padding="0"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,0,6,0"
+                          Cursor="Hand">
+                    <Border Background="#FEF3C7" CornerRadius="8" Padding="10,8"
+                            BorderBrush="#B45309"
+                            BorderThickness="{Binding IsVentesBadgeSelected, Converter={x:Static conv:BoolToThicknessConverter.Instance}}">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding LblVentes}" FontSize="11" Foreground="#B45309"/>
+                        <TextBlock Text="{Binding VentesLabel}" FontSize="15" FontWeight="Bold" Foreground="#92400E"/>
+                      </StackPanel>
+                    </Border>
+                  </Button>
+                  <Button Grid.Column="1" Command="{Binding SelectCaisseEncaisseCommand}"
+                          Background="Transparent" BorderThickness="0" Padding="0"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,0,6,0"
+                          Cursor="Hand">
+                    <Border Background="#E0E7FF" CornerRadius="8" Padding="10,8"
+                            BorderBrush="#4338CA"
+                            BorderThickness="{Binding IsEncaisseBadgeSelected, Converter={x:Static conv:BoolToThicknessConverter.Instance}}">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding LblEncaisse}" FontSize="11" Foreground="#4338CA"/>
+                        <TextBlock Text="{Binding EncaisseLabel}" FontSize="15" FontWeight="Bold" Foreground="#3730A3"/>
+                      </StackPanel>
+                    </Border>
+                  </Button>
+                  <Button Grid.Column="2" Command="{Binding SelectCaisseRemisCommand}"
+                          Background="Transparent" BorderThickness="0" Padding="0"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,0,6,0"
+                          Cursor="Hand">
+                    <Border Background="#DCFCE7" CornerRadius="8" Padding="10,8"
+                            BorderBrush="#15803D"
+                            BorderThickness="{Binding IsRemisBadgeSelected, Converter={x:Static conv:BoolToThicknessConverter.Instance}}">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding LblRemis}" FontSize="11" Foreground="#15803D"/>
+                        <TextBlock Text="{Binding RemisLabel}" FontSize="15" FontWeight="Bold" Foreground="#166534"/>
+                      </StackPanel>
+                    </Border>
+                  </Button>
                   <Border Grid.Column="3" Background="#FEE2E2" CornerRadius="8" Padding="10,8">
                     <StackPanel Spacing="2">
                       <TextBlock Text="{Binding LblARemettre}" FontSize="11" Foreground="#B91C1C"/>
@@ -201,7 +222,15 @@
                 <Border Padding="12" CornerRadius="8" BorderBrush="#30000000" BorderThickness="1"
                         Background="#10000000" IsVisible="{Binding ShowRemiseForm}">
                   <StackPanel Spacing="10">
-                    <TextBlock Text="{Binding LblRemiseForm}" FontWeight="SemiBold" FontSize="13"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Text="{Binding LblRemiseForm}" FontWeight="SemiBold" FontSize="13"
+                                 VerticalAlignment="Center"/>
+                      <Button Grid.Column="1" Content="✕" ToolTip.Tip="{Binding BtnCancelRemise}"
+                              Command="{Binding CloseRemiseFormCommand}"
+                              Width="28" Height="28" Padding="0"
+                              Background="Transparent" BorderThickness="0"
+                              FontSize="14" Opacity="0.7"/>
+                    </Grid>
                     <Grid ColumnDefinitions="*,12,*,12,*">
                       <StackPanel Spacing="4">
                         <TextBlock Text="{Binding LblRemiseDate}" FontWeight="SemiBold" FontSize="12"/>
@@ -226,45 +255,122 @@
                       <TextBlock Text="{Binding LblNote}" FontWeight="SemiBold" FontSize="12"/>
                       <TextBox Text="{Binding RemiseNote, Mode=TwoWay}"/>
                     </StackPanel>
-                    <Button Content="{Binding BtnSaveRemise}" Command="{Binding SaveRemiseCommand}"
-                            HorizontalAlignment="Left" MinWidth="120"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Content="{Binding BtnSaveRemise}" Command="{Binding SaveRemiseCommand}"
+                              MinWidth="120"/>
+                      <Button Content="{Binding BtnCancelRemise}" Command="{Binding CloseRemiseFormCommand}"
+                              MinWidth="120"/>
+                    </StackPanel>
                   </StackPanel>
                 </Border>
 
-                <TextBlock Text="{Binding EmptyRemises}" FontSize="12" Opacity="0.7"
-                           IsVisible="{Binding !HasRemiseLines}"/>
+                <StackPanel Spacing="4" IsVisible="{Binding ShowVentesDetail}">
+                  <TextBlock Text="{Binding EmptyVentes}" FontSize="12" Opacity="0.7"
+                             IsVisible="{Binding !HasVenteBlLines}"/>
+                  <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasVenteBlLines}">
+                    <Border Background="#12000000" CornerRadius="4,4,0,0" Padding="10,8"
+                            BorderBrush="#20000000" BorderThickness="0,0,0,1">
+                      <Grid ColumnDefinitions="110,90,*,120">
+                        <TextBlock Text="{Binding ColBlNumero}" FontWeight="SemiBold" FontSize="11"/>
+                        <TextBlock Grid.Column="1" Text="{Binding ColDate}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding ColClient}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="3" Text="{Binding ColMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
+                      </Grid>
+                    </Border>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding VenteBlLines}" BorderThickness="0"
+                             Background="Transparent" MaxHeight="280">
+                      <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                          <Setter Property="Padding" Value="10,6"/>
+                        </Style>
+                      </ListBox.Styles>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate DataType="personnel:VendeurVenteBlRow">
+                          <Grid ColumnDefinitions="110,90,*,120">
+                            <TextBlock Text="{Binding Numero}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="1" Text="{Binding DateLabel}" FontSize="11" Margin="8,0,0,0"/>
+                            <TextBlock Grid.Column="2" Text="{Binding ClientNom}" FontSize="11" Margin="8,0,0,0"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="3" Text="{Binding MontantLabel}" FontSize="11" TextAlignment="Right"
+                                       Margin="8,0,0,0" FontWeight="SemiBold" Foreground="#92400E"/>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
+                </StackPanel>
 
-                <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasRemiseLines}">
-                  <Border Background="#12000000" CornerRadius="4,4,0,0" Padding="10,8"
-                          BorderBrush="#20000000" BorderThickness="0,0,0,1">
-                    <Grid ColumnDefinitions="110,90,*,120">
-                      <TextBlock Text="{Binding ColRemiseNumero}" FontWeight="SemiBold" FontSize="11"/>
-                      <TextBlock Grid.Column="1" Text="{Binding ColRemiseDate}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
-                      <TextBlock Grid.Column="2" Text="{Binding ColRemiseMode}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
-                      <TextBlock Grid.Column="3" Text="{Binding ColRemiseMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
-                    </Grid>
-                  </Border>
-                  <ListBox Grid.Row="1" ItemsSource="{Binding RemiseLines}" SelectedItem="{Binding SelectedRemise}"
-                           BorderThickness="0" Background="Transparent" MaxHeight="280">
-                    <ListBox.Styles>
-                      <Style Selector="ListBoxItem">
-                        <Setter Property="Padding" Value="10,6"/>
-                      </Style>
-                    </ListBox.Styles>
-                    <ListBox.ItemTemplate>
-                      <DataTemplate DataType="personnel:VendeurRemiseRow">
-                        <Grid ColumnDefinitions="110,90,*,120">
-                          <TextBlock Text="{Binding Numero}" FontSize="11" TextTrimming="CharacterEllipsis"/>
-                          <TextBlock Grid.Column="1" Text="{Binding DateLabel}" FontSize="11" Margin="8,0,0,0"/>
-                          <TextBlock Grid.Column="2" Text="{Binding ModeLabel}" FontSize="11" Margin="8,0,0,0"
-                                     TextTrimming="CharacterEllipsis"/>
-                          <TextBlock Grid.Column="3" Text="{Binding MontantLabel}" FontSize="11" TextAlignment="Right"
-                                     Margin="8,0,0,0" FontWeight="SemiBold" Foreground="#991B1B"/>
-                        </Grid>
-                      </DataTemplate>
-                    </ListBox.ItemTemplate>
-                  </ListBox>
-                </Grid>
+                <StackPanel Spacing="4" IsVisible="{Binding ShowEncaisseDetail}">
+                  <TextBlock Text="{Binding EmptyEncaisse}" FontSize="12" Opacity="0.7"
+                             IsVisible="{Binding !HasEncaisseLines}"/>
+                  <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasEncaisseLines}">
+                    <Border Background="#12000000" CornerRadius="4,4,0,0" Padding="10,8"
+                            BorderBrush="#20000000" BorderThickness="0,0,0,1">
+                      <Grid ColumnDefinitions="110,90,*,120">
+                        <TextBlock Text="{Binding ColBlNumero}" FontWeight="SemiBold" FontSize="11"/>
+                        <TextBlock Grid.Column="1" Text="{Binding ColDate}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding ColRemiseMode}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="3" Text="{Binding ColMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
+                      </Grid>
+                    </Border>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding EncaisseLines}" BorderThickness="0"
+                             Background="Transparent" MaxHeight="280">
+                      <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                          <Setter Property="Padding" Value="10,6"/>
+                        </Style>
+                      </ListBox.Styles>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate DataType="personnel:VendeurEncaisseRow">
+                          <Grid ColumnDefinitions="110,90,*,120">
+                            <TextBlock Text="{Binding BlNumero}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="1" Text="{Binding DateLabel}" FontSize="11" Margin="8,0,0,0"/>
+                            <TextBlock Grid.Column="2" Text="{Binding ModeLabel}" FontSize="11" Margin="8,0,0,0"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="3" Text="{Binding MontantLabel}" FontSize="11" TextAlignment="Right"
+                                       Margin="8,0,0,0" FontWeight="SemiBold" Foreground="#3730A3"/>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
+                </StackPanel>
+
+                <StackPanel Spacing="4" IsVisible="{Binding ShowRemisDetail}">
+                  <TextBlock Text="{Binding EmptyRemises}" FontSize="12" Opacity="0.7"
+                             IsVisible="{Binding !HasRemiseLines}"/>
+                  <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasRemiseLines}">
+                    <Border Background="#12000000" CornerRadius="4,4,0,0" Padding="10,8"
+                            BorderBrush="#20000000" BorderThickness="0,0,0,1">
+                      <Grid ColumnDefinitions="110,90,*,120">
+                        <TextBlock Text="{Binding ColRemiseNumero}" FontWeight="SemiBold" FontSize="11"/>
+                        <TextBlock Grid.Column="1" Text="{Binding ColRemiseDate}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding ColRemiseMode}" FontWeight="SemiBold" FontSize="11" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="3" Text="{Binding ColRemiseMontant}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0"/>
+                      </Grid>
+                    </Border>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding RemiseLines}" SelectedItem="{Binding SelectedRemise}"
+                             BorderThickness="0" Background="Transparent" MaxHeight="280">
+                      <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                          <Setter Property="Padding" Value="10,6"/>
+                        </Style>
+                      </ListBox.Styles>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate DataType="personnel:VendeurRemiseRow">
+                          <Grid ColumnDefinitions="110,90,*,120">
+                            <TextBlock Text="{Binding Numero}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="1" Text="{Binding DateLabel}" FontSize="11" Margin="8,0,0,0"/>
+                            <TextBlock Grid.Column="2" Text="{Binding ModeLabel}" FontSize="11" Margin="8,0,0,0"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="3" Text="{Binding MontantLabel}" FontSize="11" TextAlignment="Right"
+                                       Margin="8,0,0,0" FontWeight="SemiBold" Foreground="#166534"/>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
+                </StackPanel>
                 </StackPanel>
               </StackPanel>
             </Border>

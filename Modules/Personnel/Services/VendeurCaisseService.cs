@@ -41,6 +41,38 @@ public sealed class VendeurCaisseService : IVendeurCaisseService
             select p.Montant
         ).SumAsync(cancellationToken);
 
+        var venteBls = await (
+            from b in db.BonsLivraison.AsNoTracking()
+            join t in db.Tiers.AsNoTracking() on b.ClientId equals t.Id into clients
+            from t in clients.DefaultIfEmpty()
+            where b.VendeurId == vendeurId
+            orderby b.Date descending, b.Id descending
+            select new
+            {
+                b.Id,
+                b.Numero,
+                b.Date,
+                b.TotalTtc,
+                ClientNom = t != null ? t.Nom : string.Empty
+            }
+        ).ToListAsync(cancellationToken);
+
+        var encaissements = await (
+            from p in db.PaiementsBonLivraison.AsNoTracking()
+            join b in db.BonsLivraison.AsNoTracking() on p.BonLivraisonId equals b.Id
+            where b.VendeurId == vendeurId && p.Mode != ModePaiement.Credit
+            orderby p.Date descending, p.Id descending
+            select new
+            {
+                p.Id,
+                p.BonLivraisonId,
+                b.Numero,
+                p.Date,
+                p.Mode,
+                p.Montant
+            }
+        ).ToListAsync(cancellationToken);
+
         var remises = await db.RemisesCaisse.AsNoTracking()
             .Where(r => r.AssignedToUserId == vendeurId)
             .OrderByDescending(r => r.Date)
@@ -52,6 +84,30 @@ public sealed class VendeurCaisseService : IVendeurCaisseService
         var currency = CurrencyHelper.FromSettings(cfg);
         if (string.IsNullOrEmpty(currency))
             currency = "DH";
+
+        var venteRows = venteBls.Select(b => new VendeurVenteBlRow
+        {
+            Id = b.Id,
+            Numero = b.Numero,
+            Date = b.Date,
+            ClientNom = b.ClientNom,
+            Montant = b.TotalTtc,
+            DateLabel = b.Date.ToString("d"),
+            MontantLabel = CurrencyHelper.Format(b.TotalTtc, currency)
+        }).ToList();
+
+        var encaisseRows = encaissements.Select(p => new VendeurEncaisseRow
+        {
+            PaiementId = p.Id,
+            BonLivraisonId = p.BonLivraisonId,
+            BlNumero = p.Numero,
+            Date = p.Date,
+            Mode = p.Mode,
+            Montant = p.Montant,
+            DateLabel = p.Date.ToString("d"),
+            MontantLabel = CurrencyHelper.Format(p.Montant, currency),
+            ModeLabel = UiEnumStrings.FormatModePaiement(_locale, p.Mode)
+        }).ToList();
 
         var rows = remises.Select(r => new VendeurRemiseRow
         {
@@ -71,6 +127,8 @@ public sealed class VendeurCaisseService : IVendeurCaisseService
             Ventes = ventes,
             Encaisse = encaisse,
             Remis = remis,
+            VenteBls = venteRows,
+            Encaissements = encaisseRows,
             Remises = rows
         };
     }
@@ -95,6 +153,26 @@ public sealed class VendeurCaisseService : IVendeurCaisseService
             .AnyAsync(u => u.Id == vendeurId && u.Actif, cancellationToken);
         if (!exists)
             throw new InvalidOperationException(_locale.T("VendeurCaisse_ErrVendeur"));
+
+        var ventes = await db.BonsLivraison.AsNoTracking()
+            .Where(b => b.VendeurId == vendeurId)
+            .SumAsync(b => (decimal?)b.TotalTtc, cancellationToken) ?? 0m;
+
+        var remis = await db.RemisesCaisse.AsNoTracking()
+            .Where(r => r.AssignedToUserId == vendeurId)
+            .SumAsync(r => (decimal?)r.Montant, cancellationToken) ?? 0m;
+
+        var aRemettreRestant = ventes - remis;
+        if (montant > aRemettreRestant)
+        {
+            var cfg = await _settings.GetAsync(cancellationToken);
+            var currency = CurrencyHelper.FromSettings(cfg);
+            if (string.IsNullOrEmpty(currency))
+                currency = "DH";
+
+            var maxLabel = CurrencyHelper.Format(Math.Max(0m, aRemettreRestant), currency);
+            throw new InvalidOperationException(_locale.Tf("VendeurCaisse_ErrExceedsARemettre", maxLabel));
+        }
 
         var entity = new RemiseCaisse
         {
