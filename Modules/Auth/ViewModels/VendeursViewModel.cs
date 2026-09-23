@@ -122,6 +122,8 @@ public partial class VendeursViewModel : BaseViewModel
     [ObservableProperty] private ModePaiement _remiseMode = ModePaiement.Especes;
     [ObservableProperty] private string _remiseNote = string.Empty;
     [ObservableProperty] private VendeurRemiseRow? _selectedRemise;
+    [ObservableProperty] private bool _isStockExpanded = true;
+    [ObservableProperty] private bool _isCaisseExpanded;
 
     public bool FicheEditable => (Selected is not null || IsNewDraft) && !IsDepotPrincipalSelected;
     public bool CanDelete => Selected is not null && !IsNewDraft && !IsDepotPrincipalSelected;
@@ -329,6 +331,8 @@ public partial class VendeursViewModel : BaseViewModel
         HasStockLines = false;
         QtyTotalLabel = "0,00";
         ValVenteTtcLabel = "—";
+        IsStockExpanded = true;
+        IsCaisseExpanded = false;
         ClearCaisse();
     }
 
@@ -469,7 +473,43 @@ public partial class VendeursViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private void ToggleRemiseForm() => ShowRemiseForm = !ShowRemiseForm;
+    private void ToggleStockSection()
+    {
+        if (IsStockExpanded)
+        {
+            IsStockExpanded = false;
+            return;
+        }
+
+        IsStockExpanded = true;
+        IsCaisseExpanded = false;
+        ShowRemiseForm = false;
+    }
+
+    [RelayCommand]
+    private void ToggleCaisseSection()
+    {
+        if (IsCaisseExpanded)
+        {
+            IsCaisseExpanded = false;
+            ShowRemiseForm = false;
+            return;
+        }
+
+        IsCaisseExpanded = true;
+        IsStockExpanded = false;
+    }
+
+    [RelayCommand]
+    private void ToggleRemiseForm()
+    {
+        ShowRemiseForm = !ShowRemiseForm;
+        if (ShowRemiseForm)
+        {
+            IsCaisseExpanded = true;
+            IsStockExpanded = false;
+        }
+    }
 
     [RelayCommand]
     private async Task SaveRemiseAsync(CancellationToken cancellationToken)

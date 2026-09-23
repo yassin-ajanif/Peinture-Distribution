@@ -82,10 +82,20 @@
             <Border Padding="12" CornerRadius="8"
                     BorderBrush="#28000000" BorderThickness="1" Background="#08000000"
                     IsVisible="{Binding ShowSolde}">
-              <Grid RowDefinitions="Auto,Auto,*">
-                <TextBlock Text="{Binding LblSolde}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+              <StackPanel Spacing="10">
+                <Button Background="Transparent" BorderThickness="0" Padding="0"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Command="{Binding ToggleStockSectionCommand}">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <TextBlock Text="{Binding IsStockExpanded, Converter={x:Static conv:BoolToExpandArrowConverter.Instance}}"
+                               FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"
+                               Foreground="{DynamicResource CourseraPrimaryBrush}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding LblSolde}" FontSize="14" FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                  </Grid>
+                </Button>
 
-                <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,0,0,12">
+                <Grid ColumnDefinitions="*,*">
                   <Border Background="#E0F2FE" CornerRadius="8" Padding="10,8" Margin="0,0,6,0">
                     <StackPanel Spacing="2">
                       <TextBlock Text="{Binding LblQtyTotal}" FontSize="11" Foreground="#0369A1"/>
@@ -100,9 +110,9 @@
                   </Border>
                 </Grid>
 
-                <Grid Grid.Row="2" RowDefinitions="Auto,*">
+                <StackPanel Spacing="4" IsVisible="{Binding IsStockExpanded}">
                   <TextBlock Text="{Binding EmptyStock}" FontSize="12" Opacity="0.7"
-                             IsVisible="{Binding !HasStockLines}" Margin="0,4,0,0"/>
+                             IsVisible="{Binding !HasStockLines}"/>
 
                   <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasStockLines}">
                     <Border Background="#12000000" CornerRadius="4,4,0,0" Padding="10,8"
@@ -114,7 +124,8 @@
                         <TextBlock Grid.Column="3" Text="{Binding ColValVenteTtc}" FontWeight="SemiBold" FontSize="11" TextAlignment="Right" Margin="8,0,0,0" Foreground="#047857"/>
                       </Grid>
                     </Border>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding StockLines}" BorderThickness="0" Background="Transparent">
+                    <ListBox Grid.Row="1" ItemsSource="{Binding StockLines}" BorderThickness="0" Background="Transparent"
+                             MaxHeight="280">
                       <ListBox.Styles>
                         <Style Selector="ListBoxItem">
                           <Setter Property="Padding" Value="10,6"/>
@@ -135,19 +146,27 @@
                       </ListBox.ItemTemplate>
                     </ListBox>
                   </Grid>
-                </Grid>
-              </Grid>
+                </StackPanel>
+              </StackPanel>
             </Border>
 
             <Border Padding="12" CornerRadius="8"
                     BorderBrush="#28000000" BorderThickness="1" Background="#08000000"
                     IsVisible="{Binding ShowCaisse}">
               <StackPanel Spacing="12">
-                <Grid ColumnDefinitions="*,Auto,Auto">
-                  <TextBlock Text="{Binding LblCaisse}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                  <Button Grid.Column="1" Content="{Binding BtnNewRemise}" Command="{Binding ToggleRemiseFormCommand}"
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                  <Button Grid.Column="0" Background="Transparent" BorderThickness="0" Padding="0"
+                          HorizontalContentAlignment="Left" Command="{Binding ToggleCaisseSectionCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding IsCaisseExpanded, Converter={x:Static conv:BoolToExpandArrowConverter.Instance}}"
+                                 FontSize="12" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource CourseraPrimaryBrush}"/>
+                      <TextBlock Text="{Binding LblCaisse}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                  </Button>
+                  <Button Grid.Column="2" Content="{Binding BtnNewRemise}" Command="{Binding ToggleRemiseFormCommand}"
                           MinWidth="120" Margin="0,0,8,0"/>
-                  <Button Grid.Column="2" Content="{Binding BtnDeleteRemise}" Command="{Binding DeleteRemiseCommand}"
+                  <Button Grid.Column="3" Content="{Binding BtnDeleteRemise}" Command="{Binding DeleteRemiseCommand}"
                           IsEnabled="{Binding CanDeleteRemise}" Classes="pos-delete" MinWidth="100"/>
                 </Grid>
 
@@ -178,6 +197,7 @@
                   </Border>
                 </Grid>
 
+                <StackPanel Spacing="12" IsVisible="{Binding IsCaisseExpanded}">
                 <Border Padding="12" CornerRadius="8" BorderBrush="#30000000" BorderThickness="1"
                         Background="#10000000" IsVisible="{Binding ShowRemiseForm}">
                   <StackPanel Spacing="10">
@@ -225,7 +245,7 @@
                     </Grid>
                   </Border>
                   <ListBox Grid.Row="1" ItemsSource="{Binding RemiseLines}" SelectedItem="{Binding SelectedRemise}"
-                           BorderThickness="0" Background="Transparent">
+                           BorderThickness="0" Background="Transparent" MaxHeight="280">
                     <ListBox.Styles>
                       <Style Selector="ListBoxItem">
                         <Setter Property="Padding" Value="10,6"/>
@@ -245,6 +265,7 @@
                     </ListBox.ItemTemplate>
                   </ListBox>
                 </Grid>
+                </StackPanel>
               </StackPanel>
             </Border>
           </StackPanel>
